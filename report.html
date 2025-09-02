@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Item - Lost & Found</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <h1>Campus Lost & Found</h1>
+    <nav>
+      <a href="index.html">Dashboard</a> |
+      <a href="report.html">Report Item</a> |
+      <a href="profile.html">Profile</a>
+    </nav>
+  </header>
+
+  <!-- Main Section -->
+  <main>
+    <h2>Report a Lost Item</h2>
+    <form>
+  <label for="itemName">Item Name:</label><br>
+  <input type="text" id="itemName" required><br><br>
+
+  <label for="location">Found Location:</label><br>
+  <input type="text" id="location" required><br><br>
+
+  <label for="dateFound">Date Found:</label><br>
+<input type="date" id="dateFound" required><br><br>
+
+<label for="timeFound">Time Found:</label><br>
+<input type="time" id="timeFound" required step="60"><br><br>
+
+
+  <label for="description">Description:</label><br>
+  <textarea id="description" required></textarea><br><br>
+
+  <button type="submit">Submit</button>
+</form>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2025 Lost & Found</p>
+  </footer>
+
+ <script src="js/app.js?v=6"></script>
+
+
+</body>
+</html>
