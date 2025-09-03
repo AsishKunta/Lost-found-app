@@ -19,13 +19,42 @@
 <main>
   <h2>Profile</h2>
   <p><strong>Name:</strong> Student User</p>
+  <p><strong>Student ID:</strong> 12345678</p>
   <p><strong>Email:</strong> student@unt.edu</p>
   <hr>
   <h3>Your Submissions</h3>
   <ul id="my-submissions"></ul>
+
+  <button id="clear-submissions">Clear All</button>
 </main>
 
 <footer><p>© 2025 Lost & Found</p></footer>
 <script src="js/app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const submissionsList = document.getElementById("my-submissions");
+  if (!submissionsList) return; // only run on profile page
+
+  const reports = JSON.parse(localStorage.getItem("reports")) || [];
+
+  reports.forEach(r => {
+    const listItem = document.createElement("li");
+    listItem.textContent = `${r.itemName} — ${r.location} on ${r.dateFound} at ${r.timeFound}`;
+    submissionsList.appendChild(listItem);
+  });
+});
+</script>
+<!-- Confirmation Modal -->
+<div id="confirm-popup" class="modal">
+  <div class="modal-content">
+    <h3 class="modal-header">Are you sure?</h3>
+    <p>This will permanently delete all submissions.</p>
+    <div class="modal-actions">
+      <button id="confirm-no" class="btn cancel">Cancel</button>
+      <button id="confirm-yes" class="btn danger">Confirm</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
