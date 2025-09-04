@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Campus Lost & Found</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <h1>Campus Lost & Found</h1>
+    <nav>
+      <a href="dashboard.html">Dashboard</a> |
+      <a href="report.html">Report Item</a> |
+      <a href="profile.html">Profile</a>
+    </nav>
+  </header>
+
+  <!-- Main Section -->
+  <main>
+    <h2>Dashboard</h2>
+
+    <!-- Top bar -->
+    <div class="dashboard-top">
+      <span>Total items reported: <strong id="totalCount">0</strong></span>
+    </div>
+
+    <!-- Report table -->
+    <table border="1" width="100%">
+      <thead>
+        <tr>
+          <th><input type="text" id="itemSearch" placeholder="Item Name" /></th>
+          <th><input type="text" id="locationSearch" placeholder="Location" /></th>
+          <!-- use type="date" so normalizeDate works nicely -->
+          <th><input type="date" id="dateSearch" placeholder="Date" /></th>
+          <th>
+            <select id="statusFilter">
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Claimed">Claimed</option>
+            </select>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="reportTableBody"><!-- rows injected by JS --></tbody>
+    </table>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2025 Lost & Found</p>
+  </footer>
+
+  <!-- JS: common first, then page script -->
+  <script src="js/common.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
+</body>
+</html>

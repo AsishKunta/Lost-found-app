@@ -1,17 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Report Item - Lost & Found</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report Lost Item</title>
+  <link rel="stylesheet" href="css/style.css" />
+
+  <style>
+    /* Keep the suggestion list anchored under each input */
+    .field {
+      position: relative;
+      max-width: 360px;   /* keeps form tidy */
+    }
+    .field input,
+    .field textarea {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Autocomplete popup */
+    .suggestions {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid #ccc;
+      max-height: 150px;
+      overflow-y: auto;
+      background: #fff;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      display: none;  /* shown by JS */
+    }
+    .suggestions li {
+      padding: 8px;
+      cursor: pointer;
+    }
+    .suggestions li:hover {
+      background: #f0f0f0;
+    }
+
+    .submit-container {
+      margin-top: 8px;
+    }
+  </style>
 </head>
 <body>
   <!-- Header -->
   <header>
     <h1>Campus Lost & Found</h1>
     <nav>
-      <a href="index.html">Dashboard</a> |
+      <a href="dashboard.html">Dashboard</a> |
       <a href="report.html">Report Item</a> |
       <a href="profile.html">Profile</a>
     </nav>
@@ -20,27 +61,48 @@
   <!-- Main Section -->
   <main>
     <h2>Report a Lost Item</h2>
+
     <form>
-  <label for="itemName">Item Name:</label><br>
-  <input type="text" id="itemName" required><br><br>
+      <!-- Item Name -->
+      <div class="field">
+        <label for="itemName">Item Name:</label><br />
+        <input type="text" id="itemName" required />
+        <ul id="itemSuggestions" class="suggestions"></ul>
+      </div>
+      <br />
 
-  <label for="location">Found Location:</label><br>
-  <input type="text" id="location" required><br><br>
+      <!-- Location -->
+      <div class="field">
+        <label for="location">Found Location:</label><br />
+        <input type="text" id="location" required />
+        <ul id="locationSuggestions" class="suggestions"></ul>
+      </div>
+      <br />
 
-  <label for="dateFound">Date Found:</label><br>
-<input type="date" id="dateFound" required><br><br>
+      <!-- Date Found -->
+      <div class="field">
+        <label for="dateFound">Date Found:</label><br />
+        <input type="date" id="dateFound" required />
+      </div>
+      <br />
 
-<label for="timeFound">Time Found:</label><br>
-<input type="time" id="timeFound" required step="60"><br><br>
+      <!-- Time Found -->
+      <div class="field">
+        <label for="timeFound">Time Found:</label><br />
+        <input type="time" id="timeFound" required step="60" />
+      </div>
+      <br />
 
+      <!-- Description -->
+      <div class="field">
+        <label for="description">Description:</label><br />
+        <textarea id="description" rows="4" placeholder="Enter details about the lost item..."></textarea>
+      </div>
 
-<label for="description" class="form-label">Description:</label><br>
-<textarea id="description" placeholder="Enter details about the lost item..." rows="4"></textarea>
-<div class="submit-container">
-  <button type="submit">Submit</button>
-</div>
-
-
+      <div class="submit-container">
+        <button type="submit">Submit</button>
+      </div>
+    </form>
   </main>
 
   <!-- Footer -->
@@ -48,8 +110,16 @@
     <p>© 2025 Lost & Found</p>
   </footer>
 
- <script src="js/app.js?v=6"></script>
+  <!-- Plain datasets for simple autocomplete -->
+  <script>
+    const items = ["Wallet", "Phone", "Keys", "Laptop", "Backpack", "Headphones"];
+    const locations = ["Library", "Union Hall", "Cafeteria"];
+  </script>
 
-
+  <!-- App logic (saving to localStorage, dashboard render, profile submissions, etc.) -->
+  <script src="js/app.js"></script>
 </body>
 </html>
+
+<script src="js/common.js" defer></script>
+<script src="js/report.js" defer></script>
