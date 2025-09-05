@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Item Details</title>
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- ✅ Font Awesome Free CDN (this makes the icons appear) -->
+  <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+      crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-width: 800px;
+      width: 90%;
+      padding: 30px;
+      font-size: 1.05rem;
+    }
+
+    .card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+    }
+
+    .card img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .detail-row {
+      display: flex;
+      align-items: center;
+      margin: 12px 0;
+      font-size: 1rem;
+    }
+
+    .detail-row i {
+      margin-right: 10px;
+      color: #555;
+      width: 20px;
+      text-align: center;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .status-pending {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    .status-claimed {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .actions button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .print-btn { background: #f3f4f6; }
+    .claim-btn { background: #2563eb; color: #fff; }
+    .back-btn { background: #f3f4f6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Item Details</h2>
+    <img id="itemPhoto" src="" alt="Item photo">
+
+    <div class="detail-row"><i class="fas fa-box"></i> <strong>Item:</strong>&nbsp;<span id="itemName"></span></div>
+    <div class="detail-row"><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong>&nbsp;<span id="location"></span></div>
+    <div class="detail-row"><i class="fas fa-calendar"></i> <strong>Date:</strong>&nbsp;<span id="dateFound"></span></div>
+    <div class="detail-row"><i class="fas fa-clock"></i> <strong>Status:</strong>&nbsp;<span id="status" class="status-badge"></span></div>
+    <div class="detail-row"><i class="fas fa-align-left"></i> <strong>Description:</strong>&nbsp;<span id="description"></span></div>
+    <div class="detail-row"><i class="fas fa-clipboard"></i> <strong>Submitted At:</strong>&nbsp;<span id="submittedAt"></span></div>
+
+    <div class="actions">
+      <button class="print-btn" onclick="window.print()">Print Report</button>
+      <button class="claim-btn" id="claimBtn">Mark as Claimed</button>
+      <button class="back-btn" onclick="window.location.href='dashboard.html'">Back</button>
+    </div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script>
+    const data = JSON.parse(sessionStorage.getItem("selectedReport") || "{}");
+
+    function updateStatusBadge(status) {
+      const statusEl = document.getElementById("status");
+      statusEl.textContent = status;
+      statusEl.className = "status-badge " + (status === "Claimed" ? "status-claimed" : "status-pending");
+    }
+
+    if (data.itemName) {
+      document.getElementById("itemName").textContent = data.itemName;
+      document.getElementById("location").textContent = data.location;
+      document.getElementById("dateFound").textContent =
+        data.dateFound + (data.timeFound ? " at " + data.timeFound : "");
+      updateStatusBadge(data.status || "Pending");
+      document.getElementById("description").textContent = data.description || "N/A";
+      document.getElementById("submittedAt").textContent = data.submittedAt || "N/A";
+
+      if (data.photoData) {
+        document.getElementById("itemPhoto").src = data.photoData;
+      } else {
+        document.getElementById("itemPhoto").style.display = "none";
+      }
+    } else {
+      document.querySelector(".card").innerHTML = "<p>No item selected.</p>";
+    }
+
+    // Mark as Claimed
+    document.getElementById("claimBtn").addEventListener("click", () => {
+      data.status = "Claimed";
+      updateStatusBadge("Claimed");
+
+      // Update localStorage
+      const reports = LFStore.getReports().map(r =>
+        r.itemName === data.itemName &&
+        r.dateFound === data.dateFound &&
+        r.timeFound === data.timeFound
+          ? data
+          : r
+      );
+      LFStore.setReports(reports);
+
+      // Update sessionStorage so Dashboard reflects changes instantly
+      sessionStorage.setItem("selectedReport", JSON.stringify(data));
+
+      alert("Item marked as claimed!");
+    });
+  </script>
+</body>
+</html>

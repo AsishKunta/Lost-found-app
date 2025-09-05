@@ -1,47 +1,34 @@
-// js/profile.js
-document.addEventListener("DOMContentLoaded", () => {
-  const submissionsListEl = document.getElementById("my-submissions");
-  const clearBtn          = document.getElementById("clear-submissions");
-  const confirmPopup      = document.getElementById("confirm-popup");
-  const confirmYes        = document.getElementById("confirm-yes");
-  const confirmNo         = document.getElementById("confirm-no");
+document.addEventListener("DOMContentLoaded", async function () {
+  const submissionsList = document.querySelector("#profileSubmissions");
+  const clearBtn = document.querySelector("#clearAllBtn");
 
-  function renderSubmissions() {
-    if (!submissionsListEl) return;
-    const reports = LFStore.getReports();
-    submissionsListEl.innerHTML = "";
-    reports.forEach(r => {
-      const li = document.createElement("li");
-      const prettyDate = LFStore.formatDisplayDate(r.dateFound);  
-li.textContent = `${r.itemName} - ${r.location} on ${prettyDate} at ${r.timeFound}`;
+  async function loadProfileSubmissions() {
+    try {
+      const submissions = await SubmissionAPI.getSubmissions();
 
-      submissionsListEl.appendChild(li);
-    });
+      submissionsList.innerHTML = "";
+      submissions.forEach((sub) => {
+        const li = document.createElement("li");
+        li.textContent = `${sub.itemName} - ${sub.location} (${sub.date}) [${sub.status}]`;
+        submissionsList.appendChild(li);
+      });
+    } catch (error) {
+      console.error("Error loading profile submissions:", error);
+    }
   }
 
-  renderSubmissions();
-
   if (clearBtn) {
-    clearBtn.addEventListener("click", () => {
-      if (confirmPopup && confirmYes && confirmNo) {
-        confirmPopup.style.display = "flex";
-      } else {
-        LFStore.clearReports();
-        renderSubmissions();
+    clearBtn.addEventListener("click", async function () {
+      if (!confirm("Are you sure you want to clear all submissions?")) return;
+
+      try {
+        await SubmissionAPI.clearAllSubmissions();
+        loadProfileSubmissions();
+      } catch (error) {
+        console.error("Error clearing submissions:", error);
       }
     });
   }
 
-  if (confirmYes) {
-    confirmYes.addEventListener("click", () => {
-      LFStore.clearReports();
-      if (confirmPopup) confirmPopup.style.display = "none";
-      renderSubmissions();
-    });
-  }
-  if (confirmNo) {
-    confirmNo.addEventListener("click", () => {
-      if (confirmPopup) confirmPopup.style.display = "none";
-    });
-  }
+  loadProfileSubmissions();
 });

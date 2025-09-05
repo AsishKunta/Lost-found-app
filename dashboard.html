@@ -3,8 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard - Campus Lost & Found</title>
+  <title>Dashboard - Lost & Found</title>
   <link rel="stylesheet" href="css/style.css" />
+
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f8f8f8;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 1rem;
+    }
+    .filters label {
+      font-size: 0.9rem;
+    }
+    .filters input, .filters select {
+      padding: 4px;
+    }
+  </style>
 </head>
 <body>
   <!-- Header -->
@@ -19,40 +47,185 @@
 
   <!-- Main Section -->
   <main>
-    <h2>Dashboard</h2>
+    <h2>Lost & Found Dashboard</h2>
 
-    <!-- Top bar -->
-    <div class="dashboard-top">
-      <span>Total items reported: <strong id="totalCount">0</strong></span>
+    <!-- Filter Controls -->
+    <div class="filters">
+      <div>
+        <label for="filterItem">Item:</label><br />
+        <input type="text" id="filterItem" placeholder="Search by item" />
+      </div>
+
+      <div>
+        <label for="filterLocation">Location:</label><br />
+        <input type="text" id="filterLocation" placeholder="Search by location" />
+      </div>
+
+      <div>
+        <label for="filterDate">Date:</label><br />
+        <input type="date" id="filterDate" />
+      </div>
+
+      <div>
+        <label for="filterStatus">Status:</label><br />
+        <select id="filterStatus">
+          <option value="">All</option>
+          <option value="Pending">Pending</option>
+          <option value="Claimed">Claimed</option>
+        </select>
+      </div>
     </div>
 
-    <!-- Report table -->
-    <table border="1" width="100%">
+    <!-- Submissions Table -->
+    <table id="submissionsTable">
       <thead>
         <tr>
-          <th><input type="text" id="itemSearch" placeholder="Item Name" /></th>
-          <th><input type="text" id="locationSearch" placeholder="Location" /></th>
-          <!-- use type="date" so normalizeDate works nicely -->
-          <th><input type="date" id="dateSearch" placeholder="Date" /></th>
-          <th>
-            <select id="statusFilter">
-              <option value="">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Claimed">Claimed</option>
-            </select>
-          </th>
+          <th>Item</th>
+          <th>Location</th>
+          <th>Date</th>
+          <!-- <th>Time</th> -->
+          <th>Status</th>
         </tr>
       </thead>
-      <tbody id="reportTableBody"><!-- rows injected by JS --></tbody>
+      <tbody>
+        <!-- Rows inserted by JS -->
+      </tbody>
     </table>
   </main>
+  <!-- Dialog -->
+
+  <!-- Edit Popup Modal -->
+<!-- Edit Popup Modal -->
+<div id="editModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h3>Edit Submission</h3>
+    <form id="editForm" class="form-grid">
+      <input type="hidden" id="editId" />
+
+      <!-- Row 1 -->
+      <div class="form-row">
+        <div class="form-col">
+          <label for="editItemName">Item:</label>
+          <input type="text" id="editItemName" required />
+        </div>
+        <div class="form-col">
+          <label for="editLocation">Location:</label>
+          <input type="text" id="editLocation" required />
+        </div>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="form-row">
+        <div class="form-col">
+          <label for="editDate">Date:</label>
+          <input type="date" id="editDate" required />
+        </div>
+        <div class="form-col">
+          <label for="editStatus">Status:</label>
+          <select id="editStatus">
+            <option value="Pending">Pending</option>
+            <option value="Claimed">Claimed</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 3 (Buttons) -->
+      <div class="form-row buttons">
+        <button type="submit" class="save-btn">Save</button>
+        <button type="button" id="cancelBtn" class="cancel-btn">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<style>
+ .modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex; justify-content: center; align-items: center;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 500px;
+  max-width: 90%;
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-col label {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+input, select {
+  padding: 6px;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.buttons {
+  justify-content: flex-end;
+}
+
+.save-btn {
+  background: #27ae60; /* green */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.save-btn:hover {
+  background: #219150;
+}
+
+.cancel-btn {
+  background: #ccc;
+  color: #333;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.cancel-btn:hover {
+  background: #b3b3b3;
+}
+
+
+</style>
 
   <!-- Footer -->
   <footer>
     <p>© 2025 Lost & Found</p>
   </footer>
 
-  <!-- JS: common first, then page script -->
+  <!-- Scripts -->
   <script src="js/common.js" defer></script>
   <script src="js/dashboard.js" defer></script>
 </body>

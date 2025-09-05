@@ -1,40 +1,64 @@
-// js/common.js
-const STORAGE_KEY = 'reports';
+// Base API URL for json-server
+const API_URL = "http://localhost:3000/submissions";
 
-function getReports() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch { return []; }
-}
-function setReports(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list || [])); }
-function clearReports()    { localStorage.removeItem(STORAGE_KEY); }
+// ========================
+// API Functions
+// ========================
 
-function normalizeDate(s) {
-  if (!s) return "";
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
+// Get all submissions
+async function getSubmissions() {
+  const res = await fetch(API_URL);
+  return await res.json();
 }
 
-function formatDisplayDate(s) {
-  if (!s) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const [y,m,d] = s.split("-");
-    return `${m}/${d}/${y}`;          // MM/DD/YYYY
+// Add a new submission
+async function addSubmission(submission) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(submission)
+  });
+  return await res.json();
+}
+
+// Update an existing submission (e.g., change status)
+async function updateSubmission(id, updatedData) {
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updatedData)
+  });
+  return await res.json();
+}
+
+// Delete one submission
+async function deleteSubmission(id) {
+  await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+}
+
+// Delete all submissions
+async function clearAllSubmissions() {
+  const submissions = await getSubmissions();
+  for (const sub of submissions) {
+    await deleteSubmission(sub.id);
   }
-  const dte = new Date(s);
-  if (Number.isNaN(dte.getTime())) return s;
-  const mm = String(dte.getMonth()+1).padStart(2,"0");
-  const dd = String(dte.getDate()).padStart(2,"0");
-  const yy = dte.getFullYear();
-  return `${mm}/${dd}/${yy}`;
 }
 
-// Single export (includes formatter)
-window.LFStore = {
-  getReports,
-  setReports,
-  clearReports,
-  normalizeDate,
-  formatDisplayDate,
-  STORAGE_KEY
+// ========================
+// Utility Helpers
+// ========================
+
+// Generate a unique ID
+function generateId() {
+  return Date.now();
+}
+
+// Export globally
+window.SubmissionAPI = {
+  getSubmissions,
+  addSubmission,
+  updateSubmission,
+  deleteSubmission,
+  clearAllSubmissions,
+  generateId
 };

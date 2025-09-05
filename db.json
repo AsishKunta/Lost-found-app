@@ -1,0 +1,45 @@
+{
+  "submissions": [
+    {
+      "itemName": "Black Wallet",
+      "location": "Library",
+      "dateFound": "2024-04-20",
+      "timeFound": "14:30",
+      "description": "Leather wallet with multiple card slots",
+      "submittedAt": "2024-04-21T10:00:00Z",
+      "status": "Pending",
+      "id": "f2d9"
+    },
+    {
+      "itemName": "Silversasasasa Ring",
+      "location": "Cafeteria",
+      "dateFound": "2024-04-19",
+      "timeFound": "12:15",
+      "description": "Simple silver band with a small engraving",
+      "submittedAt": "2024-04-20T09:30:00Z",
+      "status": "Claimed",
+      "id": "e78b"
+    },
+    {
+      "id": "1757047890908",
+      "itemName": "dasdasd",
+      "location": "dfasdsa",
+      "date": "1998-03-07",
+      "status": "Claimed"
+    },
+    {
+      "id": "1757047986026",
+      "itemName": "suva",
+      "location": "sda",
+      "date": "2121-12-12",
+      "status": "Pending"
+    },
+    {
+      "id": "1757048138698",
+      "itemName": "dasd",
+      "location": "dsa",
+      "date": "2312-12-31",
+      "status": "Claimed"
+    }
+  ]
+}

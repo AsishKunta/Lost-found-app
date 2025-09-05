@@ -279,6 +279,24 @@ table th select {
   box-sizing: border-box;   /* prevents overflow */
 }
 
+/* Status badges (same style as detail.html) */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+.status-pending {
+  background: #fee2e2;  /* light red */
+  color: #991b1b;       /* dark red */
+}
+.status-claimed {
+  background: #d1fae5;  /* light green */
+  color: #065f46;       /* dark green */
+}
+
+
 
 
 

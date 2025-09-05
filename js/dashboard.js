@@ -1,49 +1,104 @@
-// js/dashboard.js
-document.addEventListener("DOMContentLoaded", () => {
-  const itemSearch      = document.getElementById("itemSearch");
-  const locationSearch  = document.getElementById("locationSearch");
-  const dateSearch      = document.getElementById("dateSearch");
-  const statusFilter    = document.getElementById("statusFilter");
-  const totalCountEl    = document.getElementById("totalCount");
-  const reportTableBody = document.getElementById("reportTableBody");
+document.addEventListener("DOMContentLoaded", function () {
+  const submissionsTable = document.querySelector("#submissionsTable tbody");
+  const filterItem = document.querySelector("#filterItem");
+  const filterLocation = document.querySelector("#filterLocation");
+  const filterDate = document.querySelector("#filterDate");
+  const filterStatus = document.querySelector("#filterStatus");
 
-  function renderReports() {
-    if (!reportTableBody) return;
+  const editModal = document.querySelector("#editModal");
+  const editForm = document.querySelector("#editForm");
+  const cancelBtn = document.querySelector("#cancelBtn");
 
-    const reports = LFStore.getReports();
+  let currentEditId = null;
 
-    const qItem = (itemSearch?.value || "").trim().toLowerCase();
-    const qLoc  = (locationSearch?.value || "").trim().toLowerCase();
-    const qDate = LFStore.normalizeDate(dateSearch?.value || "");
-    const qStat = statusFilter?.value || "";
+  async function loadSubmissions() {
+    try {
+      let submissions = await SubmissionAPI.getSubmissions();
 
-    const filtered = reports.filter(r => {
-      const okItem = !qItem || (r.itemName || "").toLowerCase().includes(qItem);
-      const okLoc  = !qLoc  || (r.location || "").toLowerCase().includes(qLoc);
-      const okDate = !qDate || LFStore.normalizeDate(r.dateFound) === qDate;
-      const okStat = !qStat || r.status === qStat;
-      return okItem && okLoc && okDate && okStat;
-    });
+      // Apply filters
+      const itemFilter = filterItem.value.toLowerCase();
+      const locationFilter = filterLocation.value.toLowerCase();
+      const dateFilter = filterDate.value;
+      const statusFilter = filterStatus.value;
 
-    if (totalCountEl) totalCountEl.textContent = String(filtered.length);
+      submissions = submissions.filter((sub) => {
+        return (
+          (!itemFilter || sub.itemName.toLowerCase().includes(itemFilter)) &&
+          (!locationFilter || sub.location.toLowerCase().includes(locationFilter)) &&
+          (!dateFilter || sub.date === dateFilter) &&
+          (!statusFilter || sub.status === statusFilter)
+        );
+      });
 
-    reportTableBody.innerHTML = "";
-    filtered.forEach(r => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.itemName || ""}</td>
-        <td>${r.location || ""}</td>
-        <td>${LFStore.formatDisplayDate(r.dateFound) || ""}</td> 
-        <td>${r.status || "Pending"}</td>
-      `;
-      reportTableBody.appendChild(tr);
-    });
+      // Clear and populate table
+      submissionsTable.innerHTML = "";
+      submissions.forEach((sub) => {
+        const row = document.createElement("tr");
+       row.innerHTML = `
+  <td>${sub.itemName}</td>
+  <td>${sub.location}</td>
+  <td>${sub.date}</td>
+  <td>
+    <span class="status-pill ${
+      sub.status === "Pending" ? "status-pending" : "status-claimed"
+    }">
+      ${sub.status}
+    </span>
+  </td>
+`;
+
+
+        // Double-click row to edit
+        row.addEventListener("dblclick", () => openEditModal(sub));
+        submissionsTable.appendChild(row);
+      });
+    } catch (error) {
+      console.error("Error loading submissions:", error);
+    }
   }
 
-  [itemSearch, locationSearch, dateSearch].forEach(inp => {
-    if (inp) inp.addEventListener("input", renderReports);
-  });
-  if (statusFilter) statusFilter.addEventListener("change", renderReports);
+  // Open modal with submission data
+  function openEditModal(sub) {
+    currentEditId = sub.id;
+    document.querySelector("#editId").value = sub.id;
+    document.querySelector("#editItemName").value = sub.itemName;
+    document.querySelector("#editLocation").value = sub.location;
+    document.querySelector("#editDate").value = sub.date;
+    document.querySelector("#editStatus").value = sub.status;
 
-  renderReports();
+    editModal.style.display = "flex";
+  }
+
+  // Save changes
+  editForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const updatedData = {
+      id: currentEditId,
+      itemName: document.querySelector("#editItemName").value.trim(),
+      location: document.querySelector("#editLocation").value.trim(),
+      date: document.querySelector("#editDate").value,
+      status: document.querySelector("#editStatus").value
+    };
+
+    try {
+      await SubmissionAPI.updateSubmission(currentEditId, updatedData);
+      editModal.style.display = "none";
+      loadSubmissions();
+    } catch (error) {
+      console.error("Error updating submission:", error);
+    }
+  });
+
+  // Cancel button
+  cancelBtn.addEventListener("click", () => {
+    editModal.style.display = "none";
+  });
+
+  // Event listeners for filters
+  [filterItem, filterLocation, filterDate, filterStatus].forEach((input) => {
+    input.addEventListener("input", loadSubmissions);
+  });
+
+  loadSubmissions();
 });
