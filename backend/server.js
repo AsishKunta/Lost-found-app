@@ -14,7 +14,7 @@ app.use(express.json());
 app.use("/reports", reportRoutes);
 app.use("/claims", claimRoutes);
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Auto-create tables if they don't exist, then start listening
 async function initDB() {
@@ -72,6 +72,6 @@ async function initDB() {
 
 initDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
   });
 });
