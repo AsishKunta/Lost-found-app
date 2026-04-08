@@ -1,5 +1,5 @@
 {
-  "dependencies": {
-    "pg": "^8.20.0"
-  }
+  "name": "lost-found-frontend",
+  "version": "1.0.0",
+  "description": "Static frontend for Lost & Found app"
 }
