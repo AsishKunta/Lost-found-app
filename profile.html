@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile • Lost & Found</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <meta charset="UTF-8">
+  <title>Profile - Lost & Found App</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <!-- Header -->
@@ -13,22 +12,85 @@
     <nav>
       <a href="dashboard.html">Dashboard</a> |
       <a href="report.html">Report Item</a> |
-      <a href="profile.html">Profile</a>
+       <a href="claim.html">Claim</a>
     </nav>
+
+    <!-- Profile Dropdown -->
+    <div class="profile-menu">
+      <img src="assets/profile.png" alt="Profile" class="avatar" id="profileAvatar">
+      <div class="dropdown" id="profileDropdown">
+        <!-- ✅ Fix: point to profile.html instead of details.html -->
+        <a href="profile.html">Details</a>
+        <a href="#" onclick="logout()">Logout</a>
+      </div>
+    </div>
   </header>
 
   <!-- Main -->
   <main>
-    <h2>Profile</h2>
-    <p><strong>Name:</strong> Student User</p>
-    <p><strong>Student ID:</strong> 12345678</p>
-    <p><strong>Email:</strong> student@unt.edu</p>
-    <hr>
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatarCircle"><span id="profileInitials">JD</span></div>
+        <div class="profile-meta-group">
+          <div class="profile-title-row">
+            <h2 id="profileName">-</h2>
+            <button id="editBtn" class="primary-btn">Edit Profile</button>
+          </div>
+          <div class="profile-details">
+            <div class="profile-detail-item">
+              <span class="detail-label">Student ID</span>
+              <strong id="profileId">-</strong>
+            </div>
+            <div class="profile-detail-item">
+              <span class="detail-label">Email</span>
+              <strong id="profileEmail">-</strong>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <h3>Your Submissions</h3>
-    <ul id="my-submissions"></ul>
+      <div class="stats-container profile-stats">
+        <div class="stat-card">
+          <div class="stat-title">Total Reports</div>
+          <div class="stat-number" id="statTotal">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Claimed Items</div>
+          <div class="stat-number" id="statClaimed">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Pending Claims</div>
+          <div class="stat-number" id="statPending">0</div>
+        </div>
+      </div>
 
-    <button id="clear-submissions">Clear All</button>
+      <div class="section-divider"><span>My Submissions</span></div>
+      <div id="loadingMessage" hidden>Loading submissions...</div>
+      <div id="submissionsContainer" class="submissions-section"></div>
+      <span id="submissionsCount" hidden>0</span>
+
+      <div class="clear-btn-container">
+        <button id="clearAllBtn" class="secondary-btn">Clear Submissions</button>
+      </div>
+
+      <form id="editForm" class="edit-form" style="display:none;">
+        <h3>Edit profile</h3>
+        <div class="form-grid">
+          <label>
+            Name
+            <input type="text" id="editName" placeholder="Enter your name">
+          </label>
+          <label>
+            Student ID
+            <input type="text" id="editId" placeholder="Enter student ID">
+          </label>
+        </div>
+        <div class="edit-actions">
+          <button type="submit" class="primary-btn">Save</button>
+          <button type="button" id="cancelEdit" class="secondary-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
   </main>
 
   <!-- Footer -->
@@ -36,23 +98,8 @@
     <p>© 2025 Lost & Found</p>
   </footer>
 
-  <!-- App Script -->
-  <script src="js/app.js"></script>
-
-  <!-- Confirmation Modal -->
-  <div id="confirm-popup" class="modal" style="display:none;">
-    <div class="modal-content">
-      <h3 class="modal-header">Are you sure?</h3>
-      <p>This will permanently delete all submissions.</p>
-      <div class="modal-actions">
-        <button id="confirm-no" class="btn cancel">Cancel</button>
-        <button id="confirm-yes" class="btn danger">Confirm</button>
-      </div>
-    </div>
-  </div>
+  <!-- Scripts -->
+  <script src="js/common.js"></script>
+  <script src="js/profile.js" defer></script>
 </body>
 </html>
-
-<script src="js/common.js" defer></script>
-<script src="js/profile.js" defer></script>
-

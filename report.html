@@ -1,47 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Report Lost Item</title>
-  <link rel="stylesheet" href="css/style.css" />
-
-  <style>
-    .field {
-      position: relative;
-      max-width: 360px;
-    }
-    .field input,
-    .field textarea {
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .suggestions {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      border: 1px solid #ccc;
-      max-height: 150px;
-      overflow-y: auto;
-      background: #fff;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      display: none;
-    }
-    .suggestions li {
-      padding: 8px;
-      cursor: pointer;
-    }
-    .suggestions li:hover {
-      background: #f0f0f0;
-    }
-    .submit-container {
-      margin-top: 8px;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Item - Lost & Found</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
   <!-- Header -->
@@ -49,65 +13,139 @@
     <h1>Campus Lost & Found</h1>
     <nav>
       <a href="dashboard.html">Dashboard</a> |
-      <a href="report.html">Report Item</a> |
-      <a href="profile.html">Profile</a>
+      <a href="report.html" class="active">Report Item</a> |
+       <a href="claim.html">Claim</a>
     </nav>
+
+    <!-- Profile Dropdown -->
+    <div class="profile-menu">
+      <img src="assets/profile.png" alt="Profile" class="avatar" id="profileAvatar">
+      <div class="dropdown" id="profileDropdown">
+        <a href="profile.html">Details</a>  <!-- ✅ fixed -->
+        <a href="#" onclick="logout()">Logout</a>
+      </div>
+    </div>
   </header>
 
-  <!-- Main Section -->
+  <!-- Main -->
   <main>
-    <h2>Report a Lost Item</h2>
+    <div id="reportFormSection" class="report-card">
+      <h2>Report a Lost or Found Item</h2>
+      <form id="reportForm" class="report-form" novalidate>
+        <div class="form-row">
+          <label for="itemName">Item Name</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-box input-icon"></i>
+            <input type="text" id="itemName" placeholder="Enter item name">
+          </div>
+        </div>
 
-    <form>
-      <!-- Item Name -->
-      <div class="field">
-        <label for="itemName">Item Name:</label><br />
-        <input type="text" id="itemName" required />
-        <ul id="itemSuggestions" class="suggestions"></ul>
+        <div class="form-row">
+          <label for="category">Category</label>
+          <select id="category">
+            <option value="">Select category</option>
+            <option value="Lost">Lost</option>
+            <option value="Found">Found</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="location">Location</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-location-dot input-icon"></i>
+            <input type="text" id="location" placeholder="Enter location">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="date">Date</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-calendar-days input-icon"></i>
+            <input type="date" id="date">
+          </div>
+        </div>
+
+        <div class="section-divider"><span>Contact Information</span></div>
+
+        <div class="form-row">
+          <label for="name">Name</label>
+          <input type="text" id="name" placeholder="Your full name">
+        </div>
+
+        <div class="form-row">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="you@example.com">
+        </div>
+
+        <div class="form-row">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" placeholder="(123) 456-7890">
+        </div>
+
+        <div class="form-row">
+          <label for="description">Description</label>
+          <textarea id="description" rows="5" placeholder="Add any details about the item..."></textarea>
+        </div>
+
+        <div class="submit-container">
+          <button type="submit" class="submit-btn">
+            <span class="button-loader" aria-hidden="true"></span>
+            <span class="button-text">Submit Report →</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===================================================
+         SMART MATCH RESULTS SECTION
+         Hidden by default; shown after a successful submit.
+    ==================================================== -->
+    <div id="matchResultSection" class="report-card" style="display: none;">
+
+      <!-- Success Banner -->
+      <div style="text-align: center; padding: 12px 0 20px;">
+        <div style="font-size: 2.2rem; margin-bottom: 8px;">✓</div>
+        <h2 style="margin: 0 0 6px;">Report Submitted!</h2>
+        <p style="color: #6b7280; margin: 0;" id="matchSummaryText">Looking for potential matches…</p>
       </div>
-      <br />
 
-      <!-- Location -->
-      <div class="field">
-        <label for="location">Found Location:</label><br />
-        <input type="text" id="location" required />
-        <ul id="locationSuggestions" class="suggestions"></ul>
-      </div>
-      <br />
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 0 0 20px;">
 
-      <!-- Date Found -->
-      <div class="field">
-        <label for="date">Date Found:</label><br />
-        <input type="date" id="date" required />
-      </div>
-      <br />
+      <!-- Rendered match cards go here -->
+      <div id="matchesContainer"></div>
 
-      <!-- Time Found -->
-      <div class="field">
-        <label for="time">Time Found:</label><br />
-        <input type="time" id="time" required step="60" />
-      </div>
-      <br />
-
-      <!-- Description -->
-      <div class="field">
-        <label for="description">Description:</label><br />
-        <textarea id="description" rows="4" placeholder="Enter details about the lost item..."></textarea>
+      <!-- Shown when there are no matches -->
+      <div id="noMatchMsg" style="display: none; text-align: center; padding: 24px; color: #6b7280;">
+        <i class="fa-solid fa-magnifying-glass" style="font-size: 1.8rem; margin-bottom: 12px; display: block;"></i>
+        <p style="margin: 0 0 4px; font-weight: 500; color: #374151;">No matches found yet.</p>
+        <p style="margin: 0; font-size: 0.875rem;">Keep an eye on the dashboard for new reports.</p>
       </div>
 
+      <!-- CTA -->
       <div class="submit-container">
-        <button type="submit">Submit</button>
+        <a href="dashboard.html"
+           class="submit-btn"
+           style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+          <span class="button-text">Go to Dashboard →</span>
+        </a>
       </div>
-    </form>
+
+    </div><!-- /#matchResultSection -->
+
   </main>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- Footer -->
   <footer>
     <p>© 2025 Lost & Found</p>
   </footer>
 
-  <!-- App logic -->
-  <script src="js/common.js" defer></script>
-  <script src="js/report.js" defer></script>
+  <!-- Scripts -->
+  <script src="js/common.js"></script>
+  <script src="js/matching.js"></script>
+  <script src="js/matchService.js"></script>
+  <script src="js/report.js"></script>
 </body>
 </html>

@@ -1,73 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard - Lost & Found</title>
-  <link rel="stylesheet" href="css/style.css" />
 
-  <style>
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f8f8f8;
-    }
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 1rem;
-    }
-    .filters label {
-      font-size: 0.9rem;
-    }
-    .filters input, .filters select {
-      padding: 4px;
-    }
-  </style>
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
+
 <body>
   <!-- Header -->
   <header>
     <h1>Campus Lost & Found</h1>
     <nav>
-      <a href="dashboard.html">Dashboard</a> |
+      <a href="dashboard.html" class="active">Dashboard</a> |
       <a href="report.html">Report Item</a> |
-      <a href="profile.html">Profile</a>
+      <a href="claim.html">Claim</a>
     </nav>
+
+    <!-- Profile Dropdown -->
+<div class="profile-menu">
+  <img src="assets/profile.png" alt="Profile" class="avatar" id="profileAvatar">
+  <div class="dropdown" id="profileDropdown">
+    <a href="profile.html">Details</a> <!-- ✅ corrected -->
+    <a href="#" onclick="logout()">Logout</a>
+  </div>
+</div>
+
   </header>
 
   <!-- Main Section -->
   <main>
     <h2>Lost & Found Dashboard</h2>
 
-    <!-- Filter Controls -->
-    <div class="filters">
-      <div>
-        <label for="filterItem">Item:</label><br />
-        <input type="text" id="filterItem" placeholder="Search by item" />
+    <!-- Statistics Section -->
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="stat-title">Total Reports</div>
+        <div class="stat-number">0</div>
+        <div class="stat-trend positive">+5 this week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Items Claimed</div>
+        <div class="stat-number">0</div>
+        <div class="stat-trend negative">-2 today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Pending Claims</div>
+        <div class="stat-number">0</div>
+        <div class="stat-trend positive">+3 this week</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label for="filterItem">Item</label>
+        <div class="input-wrapper">
+          <i class="fas fa-search icon"></i>
+          <input type="text" id="filterItem" placeholder="Search by item" />
+          <button type="button" class="clear-btn" onclick="clearInput('filterItem')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
       </div>
 
-      <div>
-        <label for="filterLocation">Location:</label><br />
-        <input type="text" id="filterLocation" placeholder="Search by location" />
+      <div class="filter-group">
+        <label for="filterLocation">Location</label>
+        <div class="input-wrapper">
+          <i class="fas fa-search icon"></i>
+          <input type="text" id="filterLocation" placeholder="Search by location" />
+          <button type="button" class="clear-btn" onclick="clearInput('filterLocation')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
       </div>
 
-      <div>
-        <label for="filterDate">Date:</label><br />
+      <div class="filter-group">
+        <label for="filterDate">Date</label>
         <input type="date" id="filterDate" />
       </div>
 
-      <div>
-        <label for="filterStatus">Status:</label><br />
+      <div class="filter-group">
+        <label for="filterStatus">Status</label>
         <select id="filterStatus">
           <option value="">All</option>
           <option value="Pending">Pending</option>
@@ -80,11 +98,10 @@
     <table id="submissionsTable">
       <thead>
         <tr>
-          <th>Item</th>
+          <th>Item Name</th>
           <th>Location</th>
-          <th>Date</th>
-          <!-- <th>Time</th> -->
-          <th>Status</th>
+          <th>Date Found</th>
+          <th>Claim Status</th>
         </tr>
       </thead>
       <tbody>
@@ -92,133 +109,14 @@
       </tbody>
     </table>
   </main>
-  <!-- Dialog -->
 
-  <!-- Edit Popup Modal -->
-<!-- Edit Popup Modal -->
-<div id="editModal" class="modal" style="display:none;">
-  <div class="modal-content">
-    <h3>Edit Submission</h3>
-    <form id="editForm" class="form-grid">
-      <input type="hidden" id="editId" />
-
-      <!-- Row 1 -->
-      <div class="form-row">
-        <div class="form-col">
-          <label for="editItemName">Item:</label>
-          <input type="text" id="editItemName" required />
-        </div>
-        <div class="form-col">
-          <label for="editLocation">Location:</label>
-          <input type="text" id="editLocation" required />
-        </div>
-      </div>
-
-      <!-- Row 2 -->
-      <div class="form-row">
-        <div class="form-col">
-          <label for="editDate">Date:</label>
-          <input type="date" id="editDate" required />
-        </div>
-        <div class="form-col">
-          <label for="editStatus">Status:</label>
-          <select id="editStatus">
-            <option value="Pending">Pending</option>
-            <option value="Claimed">Claimed</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Row 3 (Buttons) -->
-      <div class="form-row buttons">
-        <button type="submit" class="save-btn">Save</button>
-        <button type="button" id="cancelBtn" class="cancel-btn">Cancel</button>
-      </div>
-    </form>
+  <!-- Detail Modal (Popup) -->
+  <div id="detailModal" class="modal">
+    <div class="modal-content detail-modal">
+      <button id="closeDetailBtn" class="cancel-btn" style="align-self: flex-end;">&times;</button>
+      <div id="detailBody"></div>
+    </div>
   </div>
-</div>
-
-
-<style>
- .modal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: flex; justify-content: center; align-items: center;
-}
-
-.modal-content {
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  width: 500px;
-  max-width: 90%;
-}
-
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-row {
-  display: flex;
-  gap: 16px;
-}
-
-.form-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.form-col label {
-  font-size: 0.9rem;
-  margin-bottom: 4px;
-}
-
-input, select {
-  padding: 6px;
-  font-size: 0.9rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.buttons {
-  justify-content: flex-end;
-}
-
-.save-btn {
-  background: #27ae60; /* green */
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.save-btn:hover {
-  background: #219150;
-}
-
-.cancel-btn {
-  background: #ccc;
-  color: #333;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-left: 8px;
-}
-
-.cancel-btn:hover {
-  background: #b3b3b3;
-}
-
-
-</style>
 
   <!-- Footer -->
   <footer>
@@ -229,4 +127,5 @@ input, select {
   <script src="js/common.js" defer></script>
   <script src="js/dashboard.js" defer></script>
 </body>
+
 </html>

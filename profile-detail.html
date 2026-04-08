@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Details</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <h1>Campus Lost & Found</h1>
+    <nav>
+      <a href="dashboard.html">Dashboard</a> |
+      <a href="report.html">Report Item</a> |
+      <a href="details.html">Details</a>
+    </nav>
+    <!-- Avatar Dropdown -->
+    <div class="profile-dropdown">
+      <img src="assets/avatar.png" alt="Profile" id="profileAvatar" />
+      <ul class="profile-menu">
+        <li><a href="details.html">Details</a></li>
+        <li><a href="#" onclick="logout()">Logout</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Main Section -->
+  <main>
+    <h2>Profile Details</h2>
+    <div id="profileSection">
+      <p><strong>Name:</strong> <span id="detailName">-</span></p>
+      <p><strong>Student ID:</strong> <span id="detailId">-</span></p>
+      <p><strong>Email:</strong> <span id="detailEmail">-</span></p>
+    </div>
+
+    <hr />
+
+    <!-- Submissions -->
+    <h2>My Submissions</h2>
+    <ul id="submissionsList">
+      <li>No submissions yet.</li>
+    </ul>
+
+    <!-- Clear Button -->
+    <button id="clear-submissions">CLEAR</button>
+  </main>
+
+  <footer>
+    <p>© 2025 Lost & Found</p>
+  </footer>
+
+  <script src="js/common.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+      if (user) {
+        document.getElementById("detailName").textContent = user.name || "Not set";
+        document.getElementById("detailId").textContent = user.studentId || "Not set";
+        document.getElementById("detailEmail").textContent = user.email || "Not set";
+      }
+
+      const submissions = JSON.parse(localStorage.getItem("submissions")) || [];
+      const userSubs = submissions.filter(s => s.userEmail === user.email);
+      const list = document.getElementById("submissionsList");
+      list.innerHTML = "";
+
+      if (userSubs.length > 0) {
+        userSubs.forEach(s => {
+          const li = document.createElement("li");
+          li.textContent = `${s.item} @ ${s.location} (${s.date}) - ${s.status}`;
+          list.appendChild(li);
+        });
+      } else {
+        list.innerHTML = "<li>No submissions yet.</li>";
+      }
+
+      // Clear all submissions
+      document.getElementById("clear-submissions").addEventListener("click", () => {
+        const updated = submissions.filter(s => s.userEmail !== user.email);
+        localStorage.setItem("submissions", JSON.stringify(updated));
+        list.innerHTML = "<li>No submissions yet.</li>";
+      });
+    });
+  </script>
+</body>
+</html>

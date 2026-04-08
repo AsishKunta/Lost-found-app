@@ -1,64 +1,116 @@
-// Base API URL for json-server
-const API_URL = "http://localhost:3000/submissions";
-
-// ========================
-// API Functions
-// ========================
-
-// Get all submissions
-async function getSubmissions() {
-  const res = await fetch(API_URL);
-  return await res.json();
-}
-
-// Add a new submission
-async function addSubmission(submission) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(submission)
-  });
-  return await res.json();
-}
-
-// Update an existing submission (e.g., change status)
-async function updateSubmission(id, updatedData) {
-  const res = await fetch(`${API_URL}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(updatedData)
-  });
-  return await res.json();
-}
-
-// Delete one submission
-async function deleteSubmission(id) {
-  await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-}
-
-// Delete all submissions
-async function clearAllSubmissions() {
-  const submissions = await getSubmissions();
-  for (const sub of submissions) {
-    await deleteSubmission(sub.id);
+// ===========================
+// Login / Session Management
+// ===========================
+function requireLogin() {
+  return; // DEV MODE: login check bypassed for testing
+  const user = JSON.parse(localStorage.getItem("loggedInUser"));
+  if (!user) {
+    window.location.href = "login.html";
   }
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const avatar = document.getElementById("profileAvatar");
+  const menu = document.querySelector(".profile-menu");
 
-// ========================
-// Utility Helpers
-// ========================
+  if (avatar && menu) {
+    avatar.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("active");
+    });
 
-// Generate a unique ID
-function generateId() {
-  return Date.now();
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!menu.contains(e.target)) {
+        menu.classList.remove("active");
+      }
+    });
+  }
+});
+
+function logout() {
+  localStorage.removeItem("loggedInUser");
+  localStorage.removeItem("currentUser");
+  // DEV MODE: redirect disabled for testing
+  // window.location.href = "login.html";
 }
 
-// Export globally
-window.SubmissionAPI = {
-  getSubmissions,
-  addSubmission,
-  updateSubmission,
-  deleteSubmission,
-  clearAllSubmissions,
-  generateId
+
+// Base API URL — all frontend files use this constant
+const BASE_URL = "http://localhost:3001";
+
+const toastState = {
+  currentToast: null,
+  timeoutId: null,
+  lastMessage: "",
+  lastType: ""
 };
+
+function getToastContainer() {
+  let container = document.getElementById("toastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toastContainer";
+    container.className = "toast-container";
+    container.setAttribute("aria-live", "polite");
+    document.body.appendChild(container);
+  }
+  return container;
+}
+
+function dismissToast(toast) {
+  if (!toast || toast.classList.contains("hide")) return;
+  toast.classList.add("hide");
+  clearTimeout(toastState.timeoutId);
+  toast.addEventListener("transitionend", () => {
+    if (toast.parentElement) toast.remove();
+    if (toastState.currentToast === toast) {
+      toastState.currentToast = null;
+      toastState.lastMessage = "";
+      toastState.lastType = "";
+    }
+  }, { once: true });
+}
+
+function showToast(message, type = "success") {
+  if (toastState.currentToast && toastState.lastMessage === message && toastState.lastType === type) {
+    return;
+  }
+
+  const container = getToastContainer();
+  if (toastState.currentToast) {
+    dismissToast(toastState.currentToast);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <span class="toast-message">${message}</span>
+    <button type="button" class="toast-close" aria-label="Close">&times;</button>
+  `;
+
+  toast.querySelector(".toast-close").addEventListener("click", () => dismissToast(toast));
+  container.appendChild(toast);
+  toastState.currentToast = toast;
+  toastState.lastMessage = message;
+  toastState.lastType = type;
+
+  requestAnimationFrame(() => toast.classList.add("visible"));
+  toastState.timeoutId = setTimeout(() => dismissToast(toast), 3000);
+  return toast;
+}
+
+function showSuccessToast(message) {
+  showToast(message, "success");
+}
+
+function showErrorToast(message) {
+  showToast(message, "error");
+}
+
+window.Toast = {
+  showToast,
+  showSuccessToast,
+  showErrorToast,
+  dismissToast
+};
+
