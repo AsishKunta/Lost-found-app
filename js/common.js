@@ -36,7 +36,7 @@ function logout() {
 
 
 // Base API URL — all frontend files use this constant
-const BASE_URL = "http://localhost:3001";
+const BASE_URL = "https://lostandfound-app-y4r4.onrender.com";
 
 const toastState = {
   currentToast: null,

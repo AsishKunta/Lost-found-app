@@ -22,6 +22,7 @@
     <button onclick="window.history.back()">Back</button>
   </main>
 
+  <script src="js/common.js"></script>
   <script>
     async function loadItem() {
       const params = new URLSearchParams(window.location.search);
@@ -33,7 +34,7 @@
       }
 
       try {
-        const res = await fetch(`http://localhost:3001/submissions/${id}`);
+        const res = await fetch(`${BASE_URL}/reports/${id}`);
         const sub = await res.json();
 
         document.getElementById("itemDetails").innerHTML = `
