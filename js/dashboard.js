@@ -1,20 +1,22 @@
-requireLogin();
+// Cache fetched reports so filters re-render without re-fetching
+let allReports       = [];
+let activeCategory   = "";
+let activeStatus     = "";
+let _dashInitialized = false;
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Read currentUser from localStorage
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-  if (!currentUser) {
-    // DEV MODE: login redirect disabled for testing
-    // window.location.href = "login.html";
-    // return;
+function initDashboard() {
+  if (_dashInitialized) {
+    loadReports(); // refresh data on every visit
+    return;
   }
-  console.log("Welcome", currentUser?.name ?? "Guest (dev mode)");
-
+  _dashInitialized = true;
   wireDetailModal();
-  loadReports();
   wireFilters();
-  updateStats();
-});
+  loadReports();
+}
+
+// router.js handles registerPage('dashboard', ...) with role dispatch
+window.initStudentDashboard = initDashboard;
 
 /* -------------------------
    Modal Wiring
@@ -77,186 +79,220 @@ function formatDate(dateString) {
    Wire Filters
 ------------------------- */
 function wireFilters() {
-  const item = document.getElementById("filterItem");
-  const location = document.getElementById("filterLocation");
-  const date = document.getElementById("filterDate");
-  const status = document.getElementById("filterStatus");
+  // Global search input
+  const searchInput = document.getElementById("globalSearch");
+  const clearBtn    = document.getElementById("searchClearBtn");
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      if (clearBtn) clearBtn.style.display = searchInput.value ? "flex" : "none";
+      renderCards();
+    });
+  }
 
-  [item, location, date, status].forEach((el) => {
-    if (!el) return;
-    el.addEventListener("input", loadReports);
-    el.addEventListener("change", loadReports);
+  // Category chips
+  document.querySelectorAll(".chip[data-category]").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".chip[data-category]").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      activeCategory = chip.dataset.category;
+      renderCards();
+    });
   });
 
-  // Handle clear button visibility for text inputs
-  [item, location].forEach((input) => {
-    if (!input) return;
-    const wrapper = input.closest('.input-wrapper');
-    const clearBtn = wrapper ? wrapper.querySelector('.clear-btn') : null;
-    
-    if (clearBtn) {
-      // Initial state
-      clearBtn.style.display = input.value ? 'flex' : 'none';
-      
-      // Update on input
-      input.addEventListener('input', () => {
-        clearBtn.style.display = input.value ? 'flex' : 'none';
-      });
-    }
+  // Status tabs
+  document.querySelectorAll(".status-tab[data-status]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".status-tab[data-status]").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      activeStatus = tab.dataset.status;
+      renderCards();
+    });
   });
 }
 
 /* -------------------------
    Update Statistics
 ------------------------- */
-async function updateStats() {
-  try {
-    const response = await fetch(`${BASE_URL}/reports`);
-    if (!response.ok) throw new Error("Failed to fetch reports");
-    const reports = await response.json();
+function updateStats(reports) {
+  const totalReports  = reports.length;
+  const itemsClaimed  = reports.filter(r => (r.claimStatus || "").toLowerCase() === "claimed").length;
+  const pendingClaims = reports.filter(r => (r.claimStatus || "").toLowerCase() !== "claimed").length;
 
-    const totalReports  = reports.length;
-    const itemsClaimed  = reports.filter(r => (r.status || "").toLowerCase() === "claimed").length;
-    const pendingClaims = reports.filter(r => (r.status || "").toLowerCase() === "pending").length;
-
-    const statNumbers = document.querySelectorAll(".stat-number");
-    if (statNumbers.length >= 3) {
-      statNumbers[0].textContent = totalReports;
-      statNumbers[1].textContent = itemsClaimed;
-      statNumbers[2].textContent = pendingClaims;
-    }
-  } catch (err) {
-    console.error("Error updating statistics:", err);
+  const statNumbers = document.querySelectorAll(".stat-number");
+  if (statNumbers.length >= 3) {
+    statNumbers[0].textContent = totalReports;
+    statNumbers[1].textContent = itemsClaimed;
+    statNumbers[2].textContent = pendingClaims;
   }
 }
 
 /* -------------------------
-   Load Reports with Filters
+   Load Reports from API (cache-first)
 ------------------------- */
+const REPORTS_CACHE_KEY = "lf_reports_cache_v2";
+
+function showSkeletonCards() {
+  const grid = document.getElementById("reportCards");
+  if (!grid) return;
+  grid.innerHTML = Array.from({ length: 6 }).map(() => `
+    <div class="rc-card rc-skeleton">
+      <div class="rc-img-wrap skel-block"></div>
+      <div class="rc-body">
+        <div class="skel-line skel-title"></div>
+        <div class="skel-line skel-meta"></div>
+        <div class="skel-line skel-meta skel-meta--short"></div>
+      </div>
+    </div>`).join("");
+}
+
 async function loadReports() {
+  // ── Step 1: render cached data instantly if available ──────────────────
+  const raw = localStorage.getItem(REPORTS_CACHE_KEY);
+  if (raw) {
+    try {
+      allReports = JSON.parse(raw);
+      updateStats(allReports);
+      renderCards();
+    } catch (_) {
+      localStorage.removeItem(REPORTS_CACHE_KEY);
+    }
+  } else {
+    // No cache yet — show skeleton so screen isn't blank
+    showSkeletonCards();
+  }
+
+  // ── Step 2: always fetch fresh data in background ──────────────────────
   try {
-    const response = await fetch(`${BASE_URL}/reports`, { cache: "no-store" });
-    if (!response.ok) throw new Error("Failed to fetch reports");
-    const reports = await response.json();
+    const res = await fetch(`${BASE_URL}/reports`);
+    if (!res.ok) throw new Error(`Server error (${res.status})`);
+    const fresh = await res.json();
 
-    reports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    // Read filter values
-    const itemVal   = document.getElementById("filterItem")?.value.trim().toLowerCase() || "";
-    const locVal    = document.getElementById("filterLocation")?.value.trim().toLowerCase() || "";
-    const dateVal   = document.getElementById("filterDate")?.value || "";
-    const statusVal = document.getElementById("filterStatus")?.value.toLowerCase() || "";
-
-    const filtered = reports.filter((r) => {
-      const matchesItem   = !itemVal   || (r.itemName || "").toLowerCase().includes(itemVal);
-      const matchesLoc    = !locVal    || (r.location || "").toLowerCase().includes(locVal);
-      const matchesDate   = !dateVal   || r.dateFound === dateVal;
-      const matchesStatus = !statusVal || (r.status || "").toLowerCase() === statusVal;
-      return matchesItem && matchesLoc && matchesDate && matchesStatus;
-    });
-
-    const tableBody = document.querySelector("#submissionsTable tbody");
-    if (!tableBody) return;
-    tableBody.innerHTML = "";
-
-    if (filtered.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#9ca3af;">No reports found.</td></tr>`;
-      return;
+    // Only update UI if data actually changed
+    if (JSON.stringify(fresh) !== JSON.stringify(allReports)) {
+      allReports = fresh;
+      updateStats(allReports);
+      renderCards();
     }
 
-    filtered.forEach((report) => {
-      const row = document.createElement("tr");
-      const statusNorm  = (report.status || "pending").toLowerCase();
-      const statusClass = statusNorm === "claimed" ? "claimed" : "pending";
-      const statusLabel = report.status || "Pending";
+    localStorage.setItem(REPORTS_CACHE_KEY, JSON.stringify(fresh));
+  } catch (err) {
+    console.error("Error fetching reports:", err);
+    // Only show error if we have nothing to display
+    if (!raw) {
+      const grid = document.getElementById("reportCards");
+      if (grid) {
+        grid.innerHTML = `
+          <div class="rc-empty">
+            <i class="fas fa-wifi" style="color:#d1d5db;"></i>
+            <p>Could not load reports — is the backend running?</p>
+          </div>`;
+      }
+    }
+  }
+}
 
-      row.innerHTML = `
-        <td>${escapeHtml(report.itemName || "N/A")}</td>
-        <td>${escapeHtml(report.location || "N/A")}</td>
-        <td>${formatDate(report.dateFound)}</td>
-        <td>
-          <span class="status ${statusClass}" style="cursor:pointer;" title="Click to toggle status">${escapeHtml(statusLabel)}</span>
-        </td>
+/* -------------------------
+   Render Cards with Filters
+------------------------- */
+function renderCards() {
+  const searchVal = (document.getElementById("globalSearch")?.value || "").trim().toLowerCase();
+
+  const filtered = allReports.filter((r) => {
+    const matchesSearch = !searchVal
+      || (r.itemName  || "").toLowerCase().includes(searchVal)
+      || (r.location  || "").toLowerCase().includes(searchVal);
+    const matchesCat    = !activeCategory
+      || (r.category || "").toLowerCase() === activeCategory.toLowerCase();
+    const matchesStatus = !activeStatus
+      || (r.claimStatus || "").toLowerCase() === activeStatus.toLowerCase();
+    return matchesSearch && matchesCat && matchesStatus;
+  });
+
+  const grid = document.getElementById("reportCards");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="rc-empty">
+        <i class="fas fa-box-open"></i>
+        <p>No reports found</p>
+      </div>`;
+    return;
+  }
+
+  filtered.forEach((report) => {
+    const isClaimed   = (report.claimStatus || "").toLowerCase() === "claimed";
+    const statusClass = isClaimed ? "claimed" : "pending";
+    const statusLabel = isClaimed ? "Claimed" : "Pending";
+    // imageUrl is a full URL for new Supabase uploads; old local paths need BASE_URL
+    const imgSrc = report.imageUrl
+      ? (report.imageUrl.startsWith("http") ? report.imageUrl : `${BASE_URL}${report.imageUrl}`)
+      : "";
+    console.log("[dashboard] report id:", report.id, "imageUrl:", report.imageUrl || "none");
+
+    const card = document.createElement("div");
+    card.className = "rc-card";
+
+    // Always render the placeholder behind; the <img> overlays it when it loads.
+    // onerror hides the img – placeholder already visible underneath.
+    const imgMarkup = imgSrc
+      ? `<img class="rc-img" src="${imgSrc}" alt="${escapeHtml(report.itemName)}"
+              loading="lazy" onerror="this.style.display='none'">`
+      : "";
+
+    card.innerHTML = `
+      <div class="rc-img-wrap">
+        <div class="rc-img-placeholder">
+          <i class="fas fa-image"></i>
+          <span>No image</span>
+        </div>
+        ${imgMarkup}
+        <span class="rc-badge rc-badge--${statusClass}">${escapeHtml(statusLabel)}</span>
+      </div>
+      <div class="rc-body">
+        <div class="rc-title">${escapeHtml(report.itemName || "Unknown Item")}</div>
+        <div class="rc-meta"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(report.location || "N/A")}</div>
+        <div class="rc-meta"><i class="fas fa-calendar-alt"></i> ${escapeHtml(formatDate(report.dateFound))}</div>
+      </div>
+    `;
+
+    card.addEventListener("click", () => {
+      const imgDetail = imgSrc
+        ? `<img src="${imgSrc}" alt="Item photo"
+                style="width:100%;max-height:260px;object-fit:cover;border-radius:8px;margin-bottom:16px;border:1px solid #e5e7eb;"
+                onerror="this.style.display='none'">`
+        : "";
+
+      const detailsHtml = `
+        <h2>Report Details</h2>
+        ${imgDetail}
+        <div class="detail-row"><i class="fas fa-box"></i> <strong>Item:</strong>&nbsp;<span>${escapeHtml(report.itemName || "N/A")}</span></div>
+        <div class="detail-row"><i class="fas fa-tag"></i> <strong>Category:</strong>&nbsp;<span>${escapeHtml(report.category || "N/A")}</span></div>
+        <div class="detail-row"><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong>&nbsp;<span>${escapeHtml(report.location || "N/A")}</span></div>
+        <div class="detail-row"><i class="fas fa-calendar"></i> <strong>Date:</strong>&nbsp;<span>${escapeHtml(report.dateFound || "N/A")}</span></div>
+        <div class="detail-row"><i class="fas fa-clock"></i> <strong>Status:</strong>&nbsp;<span class="status-badge status-${statusClass}">${escapeHtml(statusLabel)}</span></div>
+        <div class="detail-row"><i class="fas fa-align-left"></i> <strong>Description:</strong>&nbsp;<span>${escapeHtml(report.description || "N/A")}</span></div>
+        <div class="modal-actions">
+          <button class="print-btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Report</button>
+          <button class="claim-btn" onclick="navigate('claim', ${report.id})"><i class="fa-solid fa-file-circle-check"></i> File a Claim</button>
+          <button class="back-btn" onclick="hideDetailModal()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        </div>
       `;
-
-      // Click status span → toggle status without opening modal
-      const statusSpan = row.querySelector(".status");
-      statusSpan.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        const currentStatus = (report.status || "Pending").toLowerCase();
-        const nextStatus = currentStatus === "claimed" ? "Pending" : "Claimed";
-        // Optimistic UI update
-        statusSpan.textContent = nextStatus;
-        statusSpan.className = `status ${nextStatus.toLowerCase()}`;
-        report.status = nextStatus;
-        await toggleStatus(report.id, nextStatus);
-      });
-
-      // Click row → show detail modal
-      row.addEventListener("click", async () => {
-        try {
-          const res = await fetch(`${BASE_URL}/reports/${report.id}`);
-          if (!res.ok) throw new Error("Report not found");
-          const r = await res.json();
-
-          const isClaimed    = (r.status || "").toLowerCase() === "claimed";
-          const toggleLabel  = isClaimed ? "Mark as Pending" : "Mark as Claimed";
-          const nextStatus   = isClaimed ? "Pending" : "Claimed";
-
-          const detailsHtml = `
-            <h2>Report Details</h2>
-            <div class="detail-row"><i class="fas fa-box"></i> <strong>Item:</strong>&nbsp;<span>${escapeHtml(r.itemName || "N/A")}</span></div>
-            <div class="detail-row"><i class="fas fa-tag"></i> <strong>Category:</strong>&nbsp;<span>${escapeHtml(r.category || "N/A")}</span></div>
-            <div class="detail-row"><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong>&nbsp;<span>${escapeHtml(r.location || "N/A")}</span></div>
-            <div class="detail-row"><i class="fas fa-calendar"></i> <strong>Date:</strong>&nbsp;<span>${escapeHtml(r.dateFound || "N/A")}</span></div>
-            <div class="detail-row"><i class="fas fa-clock"></i> <strong>Status:</strong>&nbsp;<span class="status-badge status-${(r.status || "pending").toLowerCase()}">${escapeHtml(r.status || "Pending")}</span></div>
-            <div class="detail-row"><i class="fas fa-align-left"></i> <strong>Description:</strong>&nbsp;<span>${escapeHtml(r.description || "N/A")}</span></div>
-            <div class="modal-actions">
-              <button class="print-btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Report</button>
-              <button class="claim-btn" onclick="toggleStatus('${r.id}','${nextStatus}')"><i class="fa-solid fa-check"></i> ${toggleLabel}</button>
-              <button class="back-btn" onclick="hideDetailModal()"><i class="fa-solid fa-arrow-left"></i> Back</button>
-            </div>
-          `;
-
-          showDetailModal(detailsHtml);
-        } catch (err) {
-          console.error("Error fetching report details:", err);
-        }
-      });
-
-      tableBody.appendChild(row);
+      showDetailModal(detailsHtml);
     });
-  } catch (err) {
-    console.error("Error loading reports:", err);
-  }
+
+    grid.appendChild(card);
+  });
 }
 
 /* -------------------------
-   Toggle Status
+   Clear Search
 ------------------------- */
-async function toggleStatus(id, newStatus) {
-  try {
-    await fetch(`${BASE_URL}/reports/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus })
-    });
-    hideDetailModal();
-    loadReports();
-    updateStats();
-  } catch (err) {
-    console.error("Error updating status:", err);
-  }
-}
-
-/* -------------------------
-   Clear Input
-------------------------- */
-function clearInput(id) {
-  const input = document.getElementById(id);
-  if (input) {
-    input.value = "";
-    input.focus();
-    loadReports();
-  }
+function clearSearch() {
+  const input  = document.getElementById("globalSearch");
+  const clearBtn = document.getElementById("searchClearBtn");
+  if (input)    { input.value = ""; input.focus(); }
+  if (clearBtn) { clearBtn.style.display = "none"; }
+  renderCards();
 }

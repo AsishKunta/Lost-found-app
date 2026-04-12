@@ -3,60 +3,145 @@ console.log("LOGIN JS LOADED");
 document.addEventListener("DOMContentLoaded", function () {
 
   // Auto-redirect if already logged in
-  const existing = JSON.parse(localStorage.getItem("currentUser"));
+  const existing = localStorage.getItem("sessionEmail");
   if (existing) {
     window.location.href = "dashboard.html";
     return;
   }
 
-  const loginForm = document.getElementById("loginForm");
-  console.log("Form found:", loginForm);
+  // --- Element references ---
+  const loginForm    = document.getElementById("loginForm");
+  const signupForm   = document.getElementById("signupForm");
+  const formTitle    = document.getElementById("formTitle");
+  const errorMessage = document.getElementById("errorMessage");
+  const toggleBtn    = document.getElementById("toggleBtn");
+  const toggleText   = document.getElementById("toggleText");
 
-  // ----- Fake login handler (no password validation) -----
-  function handleLogin(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    console.log("FORM SUBMITTED");
+  let isLoginMode = true;
 
-    const identifierEl = document.getElementById("identifier");
-    const identifier = identifierEl ? identifierEl.value.trim() : "";
+  // --- Toggle between Login and Signup ---
+  toggleBtn.addEventListener("click", function () {
+    isLoginMode = !isLoginMode;
+    errorMessage.textContent = "";
 
-    const fakeUser = {
-      name: identifier || "Guest User",
-      email: identifier || "guest@unt.edu"
-    };
+    if (isLoginMode) {
+      formTitle.textContent   = "myUNT Login";
+      loginForm.classList.remove("hidden");
+      signupForm.classList.add("hidden");
+      toggleBtn.textContent   = "Sign Up";
+      toggleText.childNodes[0].textContent = "Don't have an account? ";
+    } else {
+      formTitle.textContent   = "Create Account";
+      signupForm.classList.remove("hidden");
+      loginForm.classList.add("hidden");
+      toggleBtn.textContent   = "Sign In";
+      toggleText.childNodes[0].textContent = "Already have an account? ";
+    }
+  });
 
-    // Store under both keys for compatibility with requireLogin()
-    localStorage.setItem("currentUser", JSON.stringify(fakeUser));
-    localStorage.setItem("loggedInUser", JSON.stringify(fakeUser));
-    console.log("USER STORED", fakeUser);
-
-    window.location.href = "dashboard.html";
+  // --- Helper: validate Gmail domain ---
+  function isValidGmail(email) {
+    return email.endsWith("@gmail.com");
   }
 
-  // Attach to form submit
-  if (loginForm) {
-    loginForm.addEventListener("submit", handleLogin);
+  function setError(msg) {
+    errorMessage.style.color = "red";
+    errorMessage.textContent = msg;
   }
 
-  // Attach to button click as fallback
-  // (handles cases where onsubmit="return false;" blocks submit event)
-  const signInBtn = document.querySelector("#loginForm button[type='submit']");
-  console.log("Sign In button found:", signInBtn);
-  if (signInBtn) {
-    signInBtn.addEventListener("click", handleLogin);
+  function setSuccess(msg) {
+    errorMessage.style.color = "green";
+    errorMessage.textContent = msg;
   }
+
+  // --- Signup handler ---
+  signupForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const name     = document.getElementById("signupName").value.trim();
+    const email    = document.getElementById("signupEmail").value.trim().toLowerCase();
+    const password = document.getElementById("signupPassword").value;
+
+    if (!isValidGmail(email)) {
+      console.log("Invalid email domain:", email);
+      setError("Only Gmail accounts are allowed.");
+      return;
+    }
+
+    try {
+      console.log("Calling API:", `${BASE_URL}/auth/signup`);
+      const res  = await fetch(`${BASE_URL}/auth/signup`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ name, email, password }),
+      });
+
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      console.log("Response:", data);
+
+      if (!res.ok) {
+        setError(data.error || `Server error (${res.status}). Check backend deployment.`);
+        return;
+      }
+
+      console.log("Signup successful:", email);
+      setSuccess("Account created! You can now sign in.");
+
+      setTimeout(function () {
+        errorMessage.textContent = "";
+        if (!isLoginMode) toggleBtn.click();
+      }, 1500);
+    } catch (err) {
+      console.error("Signup network error:", err);
+      setError("Cannot reach server. Is the backend running?");
+    }
+  });
+
+  // --- Login handler ---
+  loginForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const email    = document.getElementById("loginEmail").value.trim().toLowerCase();
+    const password = document.getElementById("loginPassword").value;
+
+    if (!isValidGmail(email)) {
+      console.log("Invalid email domain:", email);
+      setError("Only Gmail accounts are allowed.");
+      return;
+    }
+
+    try {
+      console.log("Calling API:", `${BASE_URL}/auth/login`);
+      const res  = await fetch(`${BASE_URL}/auth/login`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email, password }),
+      });
+
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      console.log("Response:", data);
+
+      if (!res.ok) {
+        console.log("Invalid login attempt for:", email);
+        setError(data.error || `Server error (${res.status}). Check backend deployment.`);
+        return;
+      }
+
+      // Store minimal session info only
+      localStorage.removeItem("sessionEmail");
+      localStorage.setItem("sessionEmail", data.user.email);
+
+      console.log("Login successful:", data.user.email);
+      window.location.href = "dashboard.html";
+    } catch (err) {
+      console.error("Login network error:", err);
+      setError("Cannot reach server. Is the backend running?");
+    }
+  });
 
 });
 
-// ----- Kept for future real-auth use -----
-async function fetchUsers() {
-  try {
-    const res = await fetch(`${BASE_URL}/users`);
-    if (!res.ok) throw new Error("Failed to fetch users");
-    return await res.json();
-  } catch (err) {
-    console.error("Error fetching users:", err);
-    return [];
-  }
-}
+
 

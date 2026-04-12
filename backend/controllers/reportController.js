@@ -24,6 +24,8 @@ function rowToReport(row) {
     phone:       row.phone        || "",
     description: row.description  || "",
     status:      row.status       || "Pending",
+    claimStatus: row.claim_status || "pending",
+    imageUrl:    row.image_url    || null,
     createdAt:   row.created_at
   };
 }
@@ -76,8 +78,22 @@ exports.updateReportStatus = async (req, res) => {
 };
 
 exports.createReport = async (req, res) => {
-  console.log("📥 API HIT - createReport", req.body);
-  console.log("[createReport] Request body:", req.body);
+  const body = req.body || {};
+  console.log("📥 API HIT - createReport", body);
+  console.log("[createReport] Request body:", body);
+  console.log("[createReport] Uploaded file:", req.file ? {
+    fieldname: req.file.fieldname,
+    originalname: req.file.originalname,
+    filename: req.file.filename,
+    path: req.file.path,
+    mimetype: req.file.mimetype,
+    size: req.file.size,
+  } : null);
+
+  const imageUrl = req.file
+    ? `/uploads/${req.file.filename}`
+    : (body.imageUrl || body.image_url || null);
+  console.log("[createReport] image_url received:", imageUrl || "none");
 
   const {
     itemName,
@@ -90,7 +106,7 @@ exports.createReport = async (req, res) => {
     phone,
     description,
     status,
-  } = req.body;
+  } = body;
 
   if (!itemName || !itemName.trim() || !category || !location) {
     return res
@@ -110,6 +126,7 @@ exports.createReport = async (req, res) => {
     phone        || null,         // $8  phone
     description  || null,        // $9  description
     status       || "Pending",   // $10 status
+    imageUrl,                    // $11 image_url
   ];
 
   console.log("[createReport] Insert values:", values);
@@ -117,8 +134,8 @@ exports.createReport = async (req, res) => {
   try {
     const insertResult = await pool.query(
       `INSERT INTO reports
-         (item_name, category, location, date_found, time_found, name, email, phone, description, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         (item_name, category, location, date_found, time_found, name, email, phone, description, status, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       values
     );

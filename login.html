@@ -32,8 +32,9 @@
       margin: 10px 0;
       border: 1px solid #ccc;
       border-radius: 5px;
+      box-sizing: border-box;
     }
-    .login-box button {
+    .login-box button.btn-primary {
       width: 100%;
       padding: 10px;
       background: #006A4E;
@@ -42,28 +43,61 @@
       border-radius: 5px;
       cursor: pointer;
       font-size: 16px;
+      margin-top: 5px;
     }
-    .login-box button:hover {
+    .login-box button.btn-primary:hover {
       background: #004d36;
+    }
+    .toggle-link {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 14px;
+      color: #555;
+    }
+    .toggle-link span {
+      color: #006A4E;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: underline;
     }
     .error {
       color: red;
       text-align: center;
       margin-top: 10px;
+      font-size: 14px;
+    }
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
   <div class="login-box">
-    <h2>myUNT Login</h2>
- <form id="loginForm">
-      <input type="text" id="identifier" placeholder="EUID or UNT Email" required>
-      <input type="password" id="password" placeholder="Password" required>
-      <button type="submit">Sign In</button>
-      <p id="errorMessage" class="error"></p>
+    <h2 id="formTitle">myUNT Login</h2>
+
+    <!-- Login Form -->
+    <form id="loginForm">
+      <input type="email" id="loginEmail" placeholder="Gmail address" required>
+      <input type="password" id="loginPassword" placeholder="Password" required>
+      <button type="submit" class="btn-primary">Sign In</button>
     </form>
+
+    <!-- Signup Form -->
+    <form id="signupForm" class="hidden">
+      <input type="text" id="signupName" placeholder="Full Name" required>
+      <input type="email" id="signupEmail" placeholder="Gmail address" required>
+      <input type="password" id="signupPassword" placeholder="Password" required>
+      <button type="submit" class="btn-primary">Create Account</button>
+    </form>
+
+    <p id="errorMessage" class="error"></p>
+
+    <div class="toggle-link" id="toggleText">
+      Don't have an account? <span id="toggleBtn">Sign Up</span>
+    </div>
   </div>
 
-  <script src="/js/login.js"></script>
+  <script src="./js/common.js"></script>
+  <script src="./js/login.js"></script>
 </body>
 </html>

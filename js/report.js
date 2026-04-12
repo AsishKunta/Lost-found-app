@@ -1,11 +1,10 @@
 console.log("REPORT JS LOADED");
 // Matching is now handled server-side in reportController.js
 
-requireLogin();
-
 let reportForm;
 let submitBtn;
 let buttonText;
+let _reportInitialized = false;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,11 +31,14 @@ function markSuccessFields() {
   setTimeout(() => fields.forEach((el) => el.classList.remove("success-field")), 1100);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM LOADED - attaching form handler");
+function initReport() {
+  if (_reportInitialized) return;
+  _reportInitialized = true;
+  requireLogin();
+  console.log("[SPA] initReport");
 
   reportForm = document.getElementById("reportForm");
-  submitBtn  = document.querySelector(".submit-btn");
+  submitBtn  = reportForm ? reportForm.querySelector(".submit-btn") : document.querySelector(".submit-btn");
 
   if (!reportForm) {
     console.error("❌ reportForm NOT FOUND");
@@ -45,11 +47,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
   console.log("✅ Form found");
 
+  if (!submitBtn) {
+    console.error("❌ submitBtn NOT FOUND");
+    return;
+  }
+
   buttonText = submitBtn.querySelector(".button-text");
+
+  // Image preview wiring
+  const itemImageInput = document.getElementById("itemImage");
+  const imagePreview   = document.getElementById("imagePreview");
+  const fileNameSpan   = document.getElementById("fileName");
+  if (itemImageInput) {
+    itemImageInput.addEventListener("change", () => {
+      const file = itemImageInput.files[0];
+      if (file) {
+        fileNameSpan.textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          imagePreview.src = e.target.result;
+          imagePreview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      } else {
+        fileNameSpan.textContent = "No file chosen";
+        imagePreview.src = "";
+        imagePreview.style.display = "none";
+      }
+    });
+  }
 
   reportForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    console.log("🚀 FORM SUBMITTED CLICKED");
+    console.log("[report submit] Submit event fired");
     if (submitBtn.disabled) return;
 
     const itemName    = (document.getElementById("itemName")?.value    || "").trim();
@@ -74,72 +104,72 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setButtonState("loading");
 
-    const newReport = {
-      itemName:    itemName,
-      category:    category,
-      location:    location,
-      dateFound:   dateFound   || null,
-      timeFound:   timeFound   || null,
-      name:        name        || null,
-      email:       email       || null,
-      phone:       phone       || null,
-      description: description || null,
-      status:      "Pending"
-    };
+    const imageInput = document.getElementById("itemImage");
+    const imageFile = imageInput?.files?.[0] || null;
 
-    console.log("Submitting payload:", newReport);
+    const formData = new FormData();
+    formData.append("itemName", itemName);
+    formData.append("category", category || "General");
+    formData.append("location", location);
+    formData.append("dateFound", dateFound || "");
+    formData.append("timeFound", timeFound || "");
+    formData.append("name", name || "");
+    formData.append("email", email || "");
+    formData.append("phone", phone || "");
+    formData.append("description", description || "");
+    formData.append("status", "Pending");
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
+
+    console.log("[report submit] FormData created", {
+      itemName,
+      category: category || "General",
+      location,
+      dateFound,
+      timeFound,
+      name,
+      email,
+      phone,
+      description,
+      hasImage: !!imageFile,
+      imageName: imageFile ? imageFile.name : null,
+    });
 
     try {
-      // ----- Step 1: POST the new report -----
-
       const res = await fetch(`${BASE_URL}/reports`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newReport)
+        method:  "POST",
+        body:    formData,
       });
 
-      console.log("POST response status:", res.status, res.ok);
+      const body = await res.json().catch(() => ({}));
+      console.log("[report submit] Server response", { status: res.status, ok: res.ok, body });
 
-      if (!res.ok) throw new Error("Failed to save report");
-
-      const result = await res.json();
-      const savedItem = result.report;
-      const matches = result.matches;
-      console.log("Saved report:", savedItem);
-      console.log("Server matches:", matches);
-
-      if (!result || !result.report) throw new Error("Invalid response: missing report from server");
-
-      await delay(800);
-
-      // ----- Step 2: Animate button to success state -----
-      setButtonState("success");
-      markSuccessFields();
-
-      await delay(600);
-
-      // ----- Step 3: Redirect based on matches -----
-      console.log("[redirect] matches from API:", matches);
-      console.log("[redirect] match count:", matches ? matches.length : 0);
-
-      if (matches && matches.length > 0) {
-        localStorage.setItem("matches", JSON.stringify(matches));
-        console.log("[redirect] → matches.html");
-        window.location.href = "matches.html";
-      } else {
-        console.log("[redirect] → dashboard.html (no matches)");
-        window.location.href = "dashboard.html";
+      if (!res.ok) {
+        throw new Error(body.error || `Server error (${res.status})`);
       }
 
+      setButtonState("success");
+      markSuccessFields();
+      await delay(600);
+
+      alert("Report submitted successfully");
+      navigate('dashboard');
     } catch (err) {
-      console.error("Error in report submit flow:", err);
+      console.error("[report submit] Error submitting report:", err);
       setButtonState("default");
-      showErrorToast("Could not save report. Please try again.");
+      alert(`Error submitting report: ${err.message}`);
     }
   }); // end submit listener
 
   console.log("FORM HANDLER ATTACHED");
-}); // end DOMContentLoaded
+}
+
+if (typeof registerPage === "function") {
+  registerPage("report", initReport);
+} else {
+  document.addEventListener("DOMContentLoaded", initReport);
+}
 
 // =============================================================
 // MATCH RESULTS UI

@@ -2,13 +2,49 @@
 // Login / Session Management
 // ===========================
 function requireLogin() {
-  return; // DEV MODE: login check bypassed for testing
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
-  if (!user) {
+  const user = JSON.parse(localStorage.getItem("currentUser")) || localStorage.getItem("sessionEmail");
+  const publicPages = ["dashboard.html", "report.html", "index.html"];
+  const currentPage = window.location.pathname.split("/").pop();
+
+  if (!user && !publicPages.includes(currentPage)) {
     window.location.href = "login.html";
   }
 }
+
+function logout() {
+  localStorage.removeItem("sessionEmail");
+  window.location.href = "login.html";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Set role label dynamically
+  const roleLabel = document.getElementById("avatarRoleLabel");
+  if (roleLabel) {
+    const role = localStorage.getItem("role") || "student";
+    roleLabel.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+  }
+
+  // Wire logout button
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      logout();
+    });
+  }
+
+  // Wire role-switch <select>
+  const roleSelect = document.getElementById("roleSwitch");
+  if (roleSelect) {
+    roleSelect.value = localStorage.getItem("role") || "student";
+    roleSelect.addEventListener("change", () => {
+      const newRole = roleSelect.value;
+      localStorage.setItem("role", newRole);
+      window.location.href = newRole === "admin" ? "admin-dashboard.html" : "dashboard.html";
+    });
+  }
+
+  // Profile avatar dropdown (works for both .avatar-wrapper and legacy #profileAvatar)
   const avatar = document.getElementById("profileAvatar");
   const menu = document.querySelector(".profile-menu");
 
@@ -27,16 +63,32 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-function logout() {
-  localStorage.removeItem("loggedInUser");
-  localStorage.removeItem("currentUser");
-  // DEV MODE: redirect disabled for testing
-  // window.location.href = "login.html";
-}
-
 
 // Base API URL — all frontend files use this constant
-const BASE_URL = "https://lostandfound-app-y4r4.onrender.com";
+const BASE_URL = "http://localhost:3001";
+
+// ===========================
+// Role Switching
+// ===========================
+function switchRole(targetRole) {
+  localStorage.setItem("role", targetRole);
+  if (targetRole === "admin") {
+    window.location.href = "admin-dashboard.html";
+  } else {
+    window.location.href = "dashboard.html";
+  }
+}
+
+// Redirect to the correct dashboard based on stored role
+(function checkRoleRedirect() {
+  const role = localStorage.getItem("role") || "student";
+  const page = window.location.pathname.split("/").pop();
+  if (page === "dashboard.html" && role === "admin") {
+    window.location.replace("admin-dashboard.html");
+  } else if (page === "admin-dashboard.html" && role === "student") {
+    window.location.replace("dashboard.html");
+  }
+})();
 
 const toastState = {
   currentToast: null,

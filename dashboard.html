@@ -4,128 +4,599 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard - Lost & Found</title>
+  <title>Student Portal - Lost &amp; Found</title>
 
-  <!-- Stylesheets -->
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    /* ════════════════════════════════════════
+       SHARED SPA SHELL
+    ════════════════════════════════════════ */
+    body { display:flex; height:100vh; overflow:hidden; background:#f1f5f9; margin:0; }
+
+    /* ── SIDEBAR ────────────────────────── */
+    .sidebar {
+      width:240px; min-width:240px;
+      background:linear-gradient(180deg,#001F3F 0%,#003f7a 55%,#0074D9 100%);
+      display:flex; flex-direction:column;
+      height:100vh; position:sticky; top:0; overflow-y:auto; z-index:100;
+    }
+    .sidebar-brand { padding:24px 20px 20px; border-bottom:1px solid rgba(255,255,255,.1); }
+    .sidebar-brand h2 { color:#fff; font-size:16px; font-weight:700; margin:0 0 2px; letter-spacing:.03em; }
+    .sidebar-brand p  { color:rgba(255,255,255,.5); font-size:11px; margin:0; text-transform:uppercase; letter-spacing:.08em; }
+    .sidebar-nav { flex:1; padding:16px 0; list-style:none; margin:0; }
+    .sidebar-nav-link {
+      display:flex; align-items:center; gap:12px; padding:11px 22px;
+      color:rgba(255,255,255,.72); text-decoration:none;
+      font-size:13.5px; font-weight:500;
+      border-left:3px solid transparent; transition:all .18s ease; cursor:pointer;
+    }
+    .sidebar-nav-link i { width:18px; text-align:center; font-size:14px; }
+    .sidebar-nav-link:hover  { color:#fff; background:rgba(255,255,255,.08); border-left-color:rgba(255,255,255,.4); }
+    .sidebar-nav-link.active { color:#fff; background:rgba(255,255,255,.14); border-left-color:#60a5fa; font-weight:700; }
+    .sidebar-footer { margin-top:auto; padding:16px; border-top:1px solid rgba(255,255,255,.1); }
+    .sidebar-role-select {
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:none;
+      background:linear-gradient(135deg, #2563eb, #1d4ed8);
+      color:white;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .sidebar-role-select option { background:#001F3F; color:#fff; }
+
+    /* ── PAGE CONTENT ───────────────────── */
+    .page-content { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+    /* ── TOPBAR ─────────────────────────── */
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 28px; background:#fff; border-bottom:1px solid #e2e8f0;
+      position:sticky; top:0; z-index:50; gap:16px; flex-shrink:0;
+    }
+    .topbar-title { font-size:18px; font-weight:700; color:#0f172a; white-space:nowrap; }
+    .topbar-right { display:flex; align-items:center; gap:14px; flex-shrink:0; }
+    .topbar .profile-menu { position:relative; }
+
+    /* ── SPA WRAPPER + PAGES ────────────── */
+    .spa-wrapper { flex:1; overflow:hidden; position:relative; }
+    .spa-page { display:none; position:absolute; inset:0; overflow-y:auto; }
+    .spa-page.active { display:block; }
+
+    .page-scroll { padding:24px 28px 80px; }
+    .page-scroll > h2 { font-size:20px; font-weight:700; color:#0f172a; margin:0 0 20px; }
+
+    footer { position:static; background:transparent; color:#94a3b8; text-align:center; padding:10px 0 18px; font-size:12px; }
+
+    /* ════════════════════════════════════════
+       CONVERSATIONS PAGE (student-messages)
+    ════════════════════════════════════════ */
+    #page-conversations.active { display:flex; flex-direction:column; }
+
+    .messages-layout {
+      display:grid; grid-template-columns:280px 1fr;
+      gap:16px; flex:1; padding:16px; overflow:hidden; box-sizing:border-box;
+    }
+    .claims-panel { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow-y:auto; display:flex; flex-direction:column; box-shadow:0 6px 18px rgba(0,0,0,.06); }
+    .claims-panel-header { padding:14px 16px 10px; font-size:13px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.05em; border-bottom:1px solid #e2e8f0; position:sticky; top:0; background:#fff; z-index:1; }
+    .claim-list-item { padding:14px 16px; cursor:pointer; border-bottom:1px solid #e2e8f0; transition:all .2s ease; border-left:4px solid transparent; }
+    .claim-list-item:last-child { border-bottom:none; }
+    .claim-list-item:hover { background:rgba(31,111,178,.05); }
+    .claim-list-item.active { background:rgba(31,111,178,.10); border-left:4px solid #1f6fb2; }
+    .claim-list-id   { font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; margin-bottom:3px; }
+    .claim-list-name { font-size:14px; font-weight:600; color:#1e293b; margin-bottom:2px; }
+    .claim-list-sub  { font-size:12px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .list-status-badge { display:inline-block; margin-top:5px; font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:999px; }
+    .badge-pending  { background:rgba(245,158,11,.15); color:#b45309; }
+    .badge-approved { background:rgba(16,185,129,.15); color:#047857; }
+    .badge-rejected { background:rgba(239,68,68,.15);  color:#b91c1c; }
+    .search-box { display:flex; align-items:center; gap:6px; margin-top:8px; background:#f5f7fa; border-radius:8px; padding:6px 10px; border:1px solid #e2e8f0; }
+    .search-box i { color:#94a3b8; font-size:12px; }
+    .search-box input { border:none; background:transparent; outline:none; font-size:13px; width:100%; color:#1e293b; font-family:inherit; }
+    .message-panel { background:#fff; border:1px solid #e2e8f0; border-radius:14px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.06); }
+    .empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#94a3b8; gap:10px; background:#f5f7fa; }
+    .empty-state i { font-size:40px; }
+    .empty-state p { font-size:15px; font-weight:500; margin:0; }
+    .message-panel-header { padding:16px 20px; border-bottom:1px solid #e2e8f0; display:flex; align-items:flex-start; gap:10px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.04); justify-content:space-between; flex-wrap:wrap; }
+    .conv-header-claim-id { font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px; }
+    .conv-header-item     { font-size:19px; font-weight:700; color:#1e293b; margin-bottom:2px; }
+    .conv-header-meta     { font-size:13px; color:#64748b; display:flex; gap:14px; flex-wrap:wrap; margin-top:4px; }
+    .conv-header-meta span i { margin-right:4px; color:#94a3b8; }
+    .hdr-badge { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; text-transform:uppercase; margin-top:6px; }
+    .message-history { flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:12px; background:#f5f7fa; }
+    .no-messages-hint { text-align:center; color:#9ca3af; font-size:13px; margin:auto; }
+    .msg-bubble { max-width:70%; padding:10px 14px; border-radius:12px; font-size:14px; line-height:1.5; word-wrap:break-word; }
+    .msg-bubble.from-student { align-self:flex-end; background:linear-gradient(135deg,#1f6fb2,#0f3d63); color:#fff; border-bottom-right-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,.08); }
+    .msg-bubble.from-admin   { align-self:flex-start; background:#f1f5f9; color:#1e293b; border-bottom-left-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,.06); }
+    .msg-meta { font-size:11px; opacity:.65; margin-top:4px; display:block; text-align:right; }
+    .msg-bubble.from-admin .msg-meta { text-align:left; }
+    .message-input-row { padding:14px 16px; border-top:1px solid #e2e8f0; display:flex; gap:10px; align-items:flex-end; background:#fff; }
+    .message-input-row textarea { flex:1; resize:none; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; font-size:14px; font-family:inherit; min-height:44px; max-height:120px; outline:none; color:#1e293b; transition:all .2s ease; }
+    .message-input-row textarea:focus { border-color:#1f6fb2; box-shadow:0 0 0 3px rgba(31,111,178,.12); }
+    .btn-send { background:#1f6fb2; color:#fff; border:none; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s ease; white-space:nowrap; }
+    .btn-send:hover { background:#0f3d63; transform:translateY(-1px); box-shadow:0 4px 12px rgba(15,61,99,.25); }
+    .btn-send:disabled { background:#94a3b8; cursor:not-allowed; transform:none; box-shadow:none; }
+    .panel-empty { padding:20px 16px; font-size:13px; color:#9ca3af; text-align:center; }
+    .claim-list-row { display:flex; align-items:center; justify-content:space-between; }
+    .unread-dot { min-width:18px; height:18px; border-radius:999px; background:#ef4444; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 5px; flex-shrink:0; }
+    .claim-list-item.unread { background:#eef6ff; border-left:4px solid #1f6fb2; }
+    .claim-list-item.unread .claim-list-name { font-weight:700; }
+
+    /* ════════ ADMIN CLAIMS ════════ */
+    .claims-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+    .claim-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.06); cursor:pointer; transition:box-shadow .2s; }
+    .claim-card:hover { box-shadow:0 6px 20px rgba(0,0,0,.12); }
+    .claim-body { padding:14px; }
+    .claim-title { font-size:15px; font-weight:700; color:#1e293b; margin:0 0 6px; }
+    .claim-desc { font-size:13px; color:#64748b; margin:0 0 10px; line-height:1.5; }
+    .claim-meta { font-size:12px; color:#94a3b8; }
+    .claim-meta p { margin:2px 0; }
+    .claim-divider { border:none; border-top:1px solid #e2e8f0; margin:12px 0 10px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .actions button { padding:7px 14px; border-radius:8px; border:none; font-size:13px; font-weight:600; cursor:pointer; transition:all .18s; }
+    .actions .approve { background:#dcfce7; color:#15803d; }
+    .actions .reject  { background:#fee2e2; color:#b91c1c; }
+    .actions .msg-btn { background:#eff6ff; color:#1d4ed8; }
+    .actions .approve:hover { background:#bbf7d0; }
+    .actions .reject:hover  { background:#fecaca; }
+    .actions .msg-btn:hover { background:#dbeafe; }
+    .rc-admin-actions { display:flex; gap:8px; padding:8px 12px 12px; }
+    .rc-admin-btn { padding:6px 12px; border-radius:7px; border:none; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all .18s; }
+    .rc-admin-btn--approve { background:#dcfce7; color:#15803d; }
+    .rc-admin-btn--reject  { background:#fee2e2; color:#b91c1c; }
+    .rc-admin-btn--approve:hover { background:#bbf7d0; }
+    .rc-admin-btn--reject:hover  { background:#fecaca; }
+    .rc-badge-claim { position:absolute; top:6px; left:6px; background:#f59e0b; color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; display:none; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#fff; border-radius:14px; max-width:580px; width:90%; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); display:flex; flex-direction:column; }
+    .modal-header { display:flex; align-items:center; gap:10px; padding:16px 20px 12px; border-bottom:1px solid #e2e8f0; }
+    .modal-header h3 { flex:1; margin:0; font-size:16px; font-weight:700; color:#1e293b; }
+    .modal-close { background:none; border:none; font-size:22px; color:#94a3b8; cursor:pointer; line-height:1; padding:0 4px; }
+    .modal-close:hover { color:#374151; }
+    .modal-body { padding:18px 20px; }
+    .modal-img-wrap img { width:100%; max-height:220px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:12px; }
+    .chat-msg { display:flex; flex-direction:column; max-width:75%; }
+    .chat-msg--admin   { align-self:flex-start; }
+    .chat-msg--student { align-self:flex-end; }
+    .chat-sender { font-size:10px; color:#94a3b8; margin-bottom:2px; }
+    .chat-msg--student .chat-sender { align-self:flex-end; }
+    .chat-bubble { padding:8px 12px; border-radius:10px; font-size:13px; line-height:1.45; word-break:break-word; }
+    .chat-msg--admin   .chat-bubble { background:#f1f5f9; color:#1e293b; border-bottom-left-radius:3px; }
+    .chat-msg--student .chat-bubble { background:linear-gradient(135deg,#1f6fb2,#0f3d63); color:#fff; border-bottom-right-radius:3px; }
+    .chat-time { font-size:10px; color:#9ca3af; margin-top:2px; }
+    .chat-msg--student .chat-time { align-self:flex-end; }
+    .closed-banner { background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:10px 16px; margin:10px 16px 0; color:#854d0e; font-size:13px; font-weight:500; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .closed-banner i { color:#ca8a04; }
+    .rc-img-wrap { position:relative; }
+  </style>
 </head>
 
 <body>
-  <!-- Header -->
-  <header>
-    <h1>Campus Lost & Found</h1>
-    <nav>
-      <a href="dashboard.html" class="active">Dashboard</a> |
-      <a href="report.html">Report Item</a> |
-      <a href="claim.html">Claim</a>
-    </nav>
 
-    <!-- Profile Dropdown -->
-<div class="profile-menu">
-  <img src="assets/profile.png" alt="Profile" class="avatar" id="profileAvatar">
-  <div class="dropdown" id="profileDropdown">
-    <a href="profile.html">Details</a> <!-- ✅ corrected -->
-    <a href="#" onclick="logout()">Logout</a>
-  </div>
-</div>
+  <!-- ═══════ SIDEBAR ═══════ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h2>Lost &amp; Found</h2>
+      <p>Student Portal</p>
+    </div>
+    <ul class="sidebar-nav">
+      <!-- Populated by router.js based on role -->
+    </ul>
+    <div class="sidebar-footer">
+      <select id="roleSwitch" class="sidebar-role-select">
+        <option value="student">Student</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+  </aside>
 
-  </header>
+  <!-- ═══════ PAGE CONTENT ═══════ -->
+  <div class="page-content">
 
-  <!-- Main Section -->
-  <main>
-    <h2>Lost & Found Dashboard</h2>
-
-    <!-- Statistics Section -->
-    <div class="stats-container">
-      <div class="stat-card">
-        <div class="stat-title">Total Reports</div>
-        <div class="stat-number">0</div>
-        <div class="stat-trend positive">+5 this week</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Items Claimed</div>
-        <div class="stat-number">0</div>
-        <div class="stat-trend negative">-2 today</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Pending Claims</div>
-        <div class="stat-number">0</div>
-        <div class="stat-trend positive">+3 this week</div>
+    <!-- Topbar -->
+    <div class="topbar">
+      <span id="topbarTitle" class="topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <div class="profile-menu">
+          <div class="avatar-wrapper" id="profileAvatar">
+            <div class="avatar-gradient">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span class="avatar-role-label" id="avatarRoleLabel">Student</span>
+          </div>
+          <div class="dropdown" id="profileDropdown">
+            <a href="profile.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              My Profile
+            </a>
+            <a href="#" id="logoutBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Logout
+            </a>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label for="filterItem">Item</label>
-        <div class="input-wrapper">
-          <i class="fas fa-search icon"></i>
-          <input type="text" id="filterItem" placeholder="Search by item" />
-          <button type="button" class="clear-btn" onclick="clearInput('filterItem')">
-            <i class="fas fa-times"></i>
-          </button>
+    <!-- ══ SPA WRAPPER ══ -->
+    <div class="spa-wrapper">
+
+      <!-- ── PAGE: Dashboard ── -->
+      <section class="spa-page" id="page-dashboard">
+        <div class="page-scroll">
+          <h2>Lost &amp; Found Dashboard</h2>
+
+          <div class="stats-container">
+            <div class="stat-card stat-reports">
+              <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+              <div class="stat-body">
+                <div class="stat-title">Total Reports</div>
+                <div class="stat-number">0</div>
+                <div class="stat-trend positive">+5 this week</div>
+              </div>
+            </div>
+            <div class="stat-card stat-claimed">
+              <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+              <div class="stat-body">
+                <div class="stat-title">Items Claimed</div>
+                <div class="stat-number">0</div>
+                <div class="stat-trend negative">-2 today</div>
+              </div>
+            </div>
+            <div class="stat-card stat-pending">
+              <div class="stat-icon"><i class="fas fa-clock"></i></div>
+              <div class="stat-body">
+                <div class="stat-title">Pending Claims</div>
+                <div class="stat-number">0</div>
+                <div class="stat-trend positive">+3 this week</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="search-container">
+            <div class="search-bar-wrapper">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" id="globalSearch" class="search-input search-bar"
+                     placeholder="Search by item name or location..." autocomplete="off" />
+              <button class="search-clear-btn" id="searchClearBtn" onclick="clearSearch()" style="display:none">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="category-chips" id="categoryChips">
+            <button class="chip active" data-category="">All</button>
+            <button class="chip" data-category="Lost">Lost</button>
+            <button class="chip" data-category="Found">Found</button>
+            <button class="chip" data-category="Bags">Bags</button>
+            <button class="chip" data-category="Electronics">Electronics</button>
+            <button class="chip" data-category="Clothing">Clothing</button>
+            <button class="chip" data-category="Bottles">Bottles</button>
+            <button class="chip" data-category="Accessories">Accessories</button>
+            <button class="chip" data-category="Other">Other</button>
+          </div>
+
+          <div class="status-tabs" id="statusTabs">
+            <button class="status-tab active" data-status="">All Status</button>
+            <button class="status-tab" data-status="pending">Pending</button>
+            <button class="status-tab" data-status="claimed">Claimed</button>
+          </div>
+
+          <div id="reportCards" class="report-cards-grid">
+            <!-- Populated by dashboard.js -->
+          </div>
+          <footer><p>© 2025 Lost &amp; Found</p></footer>
         </div>
-      </div>
+      </section>
 
-      <div class="filter-group">
-        <label for="filterLocation">Location</label>
-        <div class="input-wrapper">
-          <i class="fas fa-search icon"></i>
-          <input type="text" id="filterLocation" placeholder="Search by location" />
-          <button type="button" class="clear-btn" onclick="clearInput('filterLocation')">
-            <i class="fas fa-times"></i>
-          </button>
+      <!-- ── PAGE: Report Item ── -->
+      <section class="spa-page" id="page-report">
+        <div class="page-scroll">
+          <div id="reportFormSection" class="report-card">
+            <h2>Report a Lost or Found Item</h2>
+            <form id="reportForm" class="report-form" novalidate>
+              <div class="form-row">
+                <label for="itemName">Item Name</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-box input-icon"></i>
+                  <input type="text" id="itemName" placeholder="Enter item name">
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="category">Category</label>
+                <select id="category">
+                  <option value="">Select category</option>
+                  <option value="Lost">Lost</option>
+                  <option value="Found">Found</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="location">Location</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-location-dot input-icon"></i>
+                  <input type="text" id="location" placeholder="Enter location">
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="date">Date</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-calendar-days input-icon"></i>
+                  <input type="date" id="date">
+                </div>
+              </div>
+              <div class="section-divider"><span>Contact Information</span></div>
+              <div class="form-row">
+                <label for="name">Name</label>
+                <input type="text" id="name" placeholder="Your full name">
+              </div>
+              <div class="form-row">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="you@example.com">
+              </div>
+              <div class="form-row">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" placeholder="(123) 456-7890">
+              </div>
+              <div class="form-row">
+                <label for="description">Description</label>
+                <textarea id="description" rows="5" placeholder="Add any details about the item..."></textarea>
+              </div>
+              <div class="form-row">
+                <label for="itemImage">Photo (optional)</label>
+                <div class="file-upload-wrapper">
+                  <label class="file-upload-label" for="itemImage">
+                    <i class="fa-solid fa-camera"></i> Choose Image
+                  </label>
+                  <input type="file" id="itemImage" accept="image/*" style="display:none">
+                  <span id="fileName" style="margin-left:10px;font-size:.875rem;color:#6b7280;">No file chosen</span>
+                </div>
+                <img id="imagePreview" src="" alt="Preview"
+                     style="display:none;margin-top:10px;max-width:100%;max-height:200px;border-radius:8px;border:1px solid #e5e7eb;">
+              </div>
+              <div class="submit-container">
+                <button type="submit" class="submit-btn">
+                  <span class="button-loader" aria-hidden="true"></span>
+                  <span class="button-text">Submit Report →</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div id="matchResultSection" class="report-card" style="display:none;">
+            <div style="text-align:center; padding:12px 0 20px;">
+              <div style="font-size:2.2rem; margin-bottom:8px;">✓</div>
+              <h2 style="margin:0 0 6px;">Report Submitted!</h2>
+              <p style="color:#6b7280; margin:0;" id="matchSummaryText">Looking for potential matches…</p>
+            </div>
+            <hr style="border:none; border-top:1px solid #e5e7eb; margin:0 0 20px;">
+            <div id="matchesContainer"></div>
+            <div id="noMatchMsg" style="display:none; text-align:center; padding:24px; color:#6b7280;">
+              <i class="fa-solid fa-magnifying-glass" style="font-size:1.8rem; margin-bottom:12px; display:block;"></i>
+              <p style="margin:0 0 4px; font-weight:500; color:#374151;">No matches found yet.</p>
+              <p style="margin:0; font-size:.875rem;">Keep an eye on the dashboard for new reports.</p>
+            </div>
+            <div class="submit-container">
+              <button type="button" class="submit-btn" onclick="navigate('dashboard')">
+                <span class="button-text">Go to Dashboard →</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="filter-group">
-        <label for="filterDate">Date</label>
-        <input type="date" id="filterDate" />
-      </div>
+      <!-- ── PAGE: File a Claim ── -->
+      <section class="spa-page" id="page-claim">
+        <div class="page-scroll">
+          <div class="claim-card">
+            <h2>Filing a Claim</h2>
+            <form id="claimForm" class="report-form" enctype="multipart/form-data">
+              <div class="form-row">
+                <label for="studentId">Student ID</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-id-card input-icon"></i>
+                  <input type="text" id="studentId" placeholder="Enter student ID" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="studentEmail">Student Email</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-envelope input-icon"></i>
+                  <input type="email" id="studentEmail" placeholder="you@example.com" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="claim-itemName">Item Name</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-tag input-icon"></i>
+                  <input type="text" id="claim-itemName" placeholder="Enter item name" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="claim-location">Location</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-location-dot input-icon"></i>
+                  <input type="text" id="claim-location" placeholder="Where did you lose it?" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="claim-description">Description</label>
+                <div class="input-wrapper">
+                  <i class="fa-solid fa-align-left input-icon"></i>
+                  <textarea id="claim-description" rows="5" placeholder="Describe your claim" required></textarea>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Upload image (optional)</label>
+                <div class="file-upload-wrapper" id="fileUploadWrapper">
+                  <input type="file" id="claimImageInput" accept="image/*" hidden>
+                  <div class="file-upload-content">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <div>
+                      <div class="file-upload-title">Upload image (optional)</div>
+                      <div class="file-upload-subtitle">PNG, JPG, GIF up to 5MB</div>
+                    </div>
+                  </div>
+                  <div class="file-name" id="claim-fileName">No file selected</div>
+                </div>
+                <img id="claimPreview" src="" alt="Preview"
+                     style="display:none;width:100%;max-height:200px;object-fit:cover;margin-top:10px;border-radius:8px;" />
+              </div>
+              <div class="submit-container">
+                <button type="submit" class="submit-btn">
+                  <span class="button-loader" aria-hidden="true"></span>
+                  <span class="button-text">Submit Claim →</span>
+                </button>
+              </div>
+            </form>
+            <p id="statusMessage" class="status-message"></p>
+          </div>
+        </div>
+      </section>
 
-      <div class="filter-group">
-        <label for="filterStatus">Status</label>
-        <select id="filterStatus">
-          <option value="">All</option>
-          <option value="Pending">Pending</option>
-          <option value="Claimed">Claimed</option>
-        </select>
-      </div>
-    </div>
+      <!-- ── PAGE: Claim Requests (admin only) ── -->
+      <section class="spa-page" id="page-claim-requests">
+        <div class="page-scroll">
+          <h2>Claim Requests</h2>
+          <div class="search-container" style="margin-bottom:16px;">
+            <div class="search-bar-wrapper">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" id="claimRequestSearch" class="search-input search-bar"
+                     placeholder="Search by item or email..." autocomplete="off" />
+            </div>
+          </div>
+          <div id="claimsList" class="claims-list"></div>
+          <footer><p>© 2025 Lost &amp; Found</p></footer>
+        </div>
+      </section>
 
-    <!-- Submissions Table -->
-    <table id="submissionsTable">
-      <thead>
-        <tr>
-          <th>Item Name</th>
-          <th>Location</th>
-          <th>Date Found</th>
-          <th>Claim Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Rows inserted by JS -->
-      </tbody>
-    </table>
-  </main>
+      <!-- ── PAGE: Conversations ── -->
+      <section class="spa-page" id="page-conversations">
+        <div class="messages-layout">
 
-  <!-- Detail Modal (Popup) -->
+          <!-- LEFT: conversations list -->
+          <div class="claims-panel" id="claimsPanel">
+            <div class="claims-panel-header">
+              Conversations
+              <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="claimSearch" placeholder="Search by item name…"
+                       oninput="filterClaims(this.value)" />
+              </div>
+            </div>
+            <!-- populated by student-messages.js -->
+          </div>
+
+          <!-- RIGHT: message area -->
+          <div class="message-panel" id="messagePanel">
+            <div class="empty-state" id="emptyState">
+              <i class="fas fa-comments"></i>
+              <p>Select a claim to view messages</p>
+            </div>
+            <div id="conversationView" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+              <div class="message-panel-header">
+                <div>
+                  <div class="conv-header-claim-id" id="headerClaimId">Claim #—</div>
+                  <div class="conv-header-item"     id="headerItemName"></div>
+                  <div class="conv-header-meta">
+                    <span><i class="fas fa-map-marker-alt"></i><span id="headerLocation"></span></span>
+                    <span><i class="fas fa-calendar-alt"></i><span id="headerDate"></span></span>
+                    <span><i class="fas fa-envelope"></i><span id="headerEmail"></span></span>
+                  </div>
+                  <span class="hdr-badge badge-pending" id="headerStatus"></span>
+                </div>
+              </div>
+              <div class="closed-banner" id="closedBanner" style="display:none;">
+                <i class="fas fa-lock"></i> This claim is closed. You cannot send new messages.
+              </div>
+              <div class="message-history" id="messageHistory"></div>
+              <div class="message-input-row">
+                <textarea id="msgInput" rows="1" placeholder="Type a message…"></textarea>
+                <button class="btn-send" id="sendBtn">
+                  <i class="fas fa-paper-plane"></i> Send
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div><!-- /.spa-wrapper -->
+
+  </div><!-- /.page-content -->
+
+  <!-- ── Global Detail Modal ── -->
   <div id="detailModal" class="modal">
     <div class="modal-content detail-modal">
-      <button id="closeDetailBtn" class="cancel-btn" style="align-self: flex-end;">&times;</button>
+      <button id="closeDetailBtn" class="cancel-btn" style="align-self:flex-end;">&times;</button>
       <div id="detailBody"></div>
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer>
-    <p>© 2025 Lost & Found</p>
-  </footer>
+  <!-- ── Admin: Claim Detail Modal ── -->
+  <div class="modal-overlay" id="claimDetailOverlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modalTitle">Claim Detail</h3>
+        <button id="closeClaimModal" onclick="closeClaimModal()" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="modalImageWrap"></div>
+        <div id="modalDetails"></div>
+        <hr style="margin:14px 0;border:none;border-top:1px solid #e2e8f0;">
+        <h4 style="margin:0 0 8px;font-size:13px;color:#374151;">Messages</h4>
+        <div id="chatBox" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:8px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input type="text" id="adminMsgInput" placeholder="Type a message…"
+                 style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:inherit;" />
+          <button onclick="sendAdminMessage()" style="background:#1f6fb2;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Scripts -->
+  <!-- ── Admin: Send Message Popup ── -->
+  <div class="modal-overlay" id="msgOverlay">
+    <div class="modal-box" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>Send Message</h3>
+        <button onclick="closeMessageModal()" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 10px;font-size:13px;color:#64748b;">To: <strong id="msgRecipient"></strong></p>
+        <textarea id="msgTextarea" rows="4" placeholder="Type your message…"
+                  style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button onclick="closeMessageModal()" style="background:#f1f5f9;color:#374151;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;">Cancel</button>
+          <button onclick="sendMessage()" style="background:#1f6fb2;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Global Toast ── -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- ── Scripts: load order matters ── -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/userContext.js"></script>
   <script src="./js/common.js"></script>
+  <script src="./js/matching.js"></script>
+  <script src="./js/matchService.js"></script>
   <script src="./js/dashboard.js"></script>
+  <script src="./js/report.js"></script>
+  <script src="./js/claim.js"></script>
+  <script src="./js/student-messages.js"></script>
+  <script src="./js/admin-dashboard.js"></script>
+  <script src="./js/admin-claims.js"></script>
+  <script src="./js/admin-messages.js"></script>
+  <script src="./js/router.js"></script><!-- must be last -->
 </body>
 
 </html>
+

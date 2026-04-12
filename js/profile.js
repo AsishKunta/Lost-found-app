@@ -1,26 +1,58 @@
 console.log("PROFILE JS LOADED");
 
-requireLogin();
+document.addEventListener("DOMContentLoaded", async () => {
+  const sessionEmail = localStorage.getItem("sessionEmail");
+  console.log("PROFILE SESSION EMAIL:", sessionEmail);
 
-document.addEventListener("DOMContentLoaded", () => {
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
+  if (!sessionEmail) {
+    console.warn("No session. Redirecting to login.");
+    window.location.href = "login.html";
+    return;
+  }
 
-  const profileName = document.getElementById("profileName");
-  const profileId = document.getElementById("profileId");
-  const profileEmail = document.getElementById("profileEmail");
+  // Show loading state in header while fetching
+  const profileNameEl = document.getElementById("profileName");
+  const profileEmailEl = document.getElementById("profileEmail");
+  if (profileNameEl) profileNameEl.textContent = "Loading...";
+  if (profileEmailEl) profileEmailEl.textContent = "";
+
+  // Fetch full user data from API
+  let user;
+  console.log("Fetching profile for:", sessionEmail);
+  try {
+    const res = await fetch(`${BASE_URL}/auth/profile/${encodeURIComponent(sessionEmail)}`);
+    if (!res.ok) {
+      console.error("Failed to fetch profile, status:", res.status);
+      throw new Error("Profile not found.");
+    }
+    const data = await res.json();
+    console.log("API response:", data);
+    user = data.user;
+  } catch (err) {
+    console.error("Failed to load profile:", err);
+    window.location.href = "login.html";
+    return;
+  }
+
+  console.log("PROFILE LOADED USER:", user);
+
+  const profileName     = document.getElementById("profileName");
+  const profileEmail    = document.getElementById("profileEmail");
+  const profileStatus   = document.getElementById("profileStatus");
+  const profileJoined   = document.getElementById("profileJoined");
   const profileInitials = document.getElementById("profileInitials");
-  const editBtn = document.getElementById("editBtn");
-  const editForm = document.getElementById("editForm");
-  const cancelBtn = document.getElementById("cancelEdit");
-  const clearAllBtn = document.getElementById("clearAllBtn");
+  const editBtn         = document.getElementById("editBtn");
+  const editForm        = document.getElementById("editForm");
+  const cancelBtn       = document.getElementById("cancelEdit");
+  const clearAllBtn     = document.getElementById("clearAllBtn");
 
   const submissionsContainer = document.getElementById("submissionsContainer");
-  const submissionsCount = document.getElementById("submissionsCount");
-  const loadingMessage = document.getElementById("loadingMessage");
+  const submissionsCount     = document.getElementById("submissionsCount");
+  const loadingMessage       = document.getElementById("loadingMessage");
 
-  const statTotal = document.getElementById("statTotal");
-  const statClaimed = document.getElementById("statClaimed");
-  const statPending = document.getElementById("statPending");
+  const statLost      = document.getElementById("statLost");
+  const statClaims    = document.getElementById("statClaims");
+  const statRecovered = document.getElementById("statRecovered");
 
   const requiredElements = {
     submissionsContainer,
@@ -47,21 +79,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderProfile() {
     if (!user) return;
-    profileName.textContent = user.name || "Not set";
-    profileId.textContent = user.studentId || "Not set";
-    profileEmail.textContent = user.email || "Not set";
+    profileName.textContent     = user.name  || "Not set";
+    profileEmail.textContent    = user.email || "Not set";
     profileInitials.textContent = getInitials(user.name || "User");
+    if (profileStatus) profileStatus.textContent = "Active";
+    if (profileJoined && user.created_at) {
+      profileJoined.textContent = new Date(user.created_at).toLocaleDateString("en-US", {
+        year: "numeric", month: "long", day: "numeric"
+      });
+    }
   }
 
-  function setStats(items) {
-    const total = items.length;
-    const claimed = items.filter((item) => (item.status || "").toLowerCase() === "claimed").length;
-    const pending = items.filter((item) => (item.status || "pending").toLowerCase() === "pending").length;
+  function setStats(reportedItems) {
+    const lostCount      = reportedItems.length;
+    const recoveredCount = reportedItems.filter((item) =>
+      ["claimed", "recovered"].includes((item.status || "").toLowerCase())
+    ).length;
 
-    statTotal.textContent = String(total);
-    statClaimed.textContent = String(claimed);
-    statPending.textContent = String(pending);
-    submissionsCount.textContent = String(total);
+    // Claims count fetched from backend claims table (filtered by email)
+    const claimsCount = reportedItems.filter((item) =>
+      (item.status || "").toLowerCase() === "claimed"
+    ).length;
+
+    if (statLost)      statLost.textContent      = String(lostCount);
+    if (statClaims)    statClaims.textContent     = String(claimsCount);
+    if (statRecovered) statRecovered.textContent  = String(recoveredCount);
+    if (submissionsCount) submissionsCount.textContent = String(lostCount);
   }
 
   function showLoadingState() {
@@ -87,8 +130,8 @@ document.addEventListener("DOMContentLoaded", () => {
     submissionsContainer.innerHTML = `
       <div class="empty-state-card">
         <div class="empty-state-copy">
-          <div class="empty-message-line"><span class="empty-bullet">•</span> No submissions yet</div>
-          <p>Start by reporting an item</p>
+          <div class="empty-message-line"><span class="empty-bullet">•</span> No reports yet</div>
+          <p>You haven't reported anything yet. Start helping others by reporting lost items.</p>
           <a href="report.html" class="primary-btn empty-state-action">Report an item</a>
         </div>
       </div>
@@ -117,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.className = "submission-card";
       card.innerHTML = `
         <div class="submission-card-top">
-          <div class="submission-title">${submission.itemName || "Unnamed item"}</div>
+          <div class="submission-title">${submission.item_name || submission.itemName || "Unnamed item"}</div>
           ${createStatusBadge(submission.status)}
         </div>
         <div class="submission-meta">${submission.location || "Unknown location"}</div>
@@ -157,7 +200,6 @@ document.addEventListener("DOMContentLoaded", () => {
     editBtn.addEventListener("click", () => {
       editForm.style.display = "block";
       document.getElementById("editName").value = user?.name || "";
-      document.getElementById("editId").value = user?.studentId || "";
     });
 
     cancelBtn.addEventListener("click", () => {
@@ -168,21 +210,10 @@ document.addEventListener("DOMContentLoaded", () => {
       event.preventDefault();
 
       const newName = document.getElementById("editName").value.trim();
-      const newId = document.getElementById("editId").value.trim();
+      if (!newName) return;
 
-      if (!user) return;
-
+      // Update local display name (no PUT endpoint yet)
       user.name = newName;
-      user.studentId = newId;
-
-      localStorage.setItem("loggedInUser", JSON.stringify(user));
-
-      let users = JSON.parse(localStorage.getItem("users")) || [];
-      users = users.map((entry) =>
-        entry.euid === user.euid || entry.email === user.email ? user : entry
-      );
-      localStorage.setItem("users", JSON.stringify(users));
-
       renderProfile();
       editForm.style.display = "none";
     });
@@ -193,6 +224,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // Hide the button to avoid confusion.
     if (clearAllBtn) clearAllBtn.style.display = "none";
   }
+
+  // --- Dev Mode: Reset User ---
+  document.getElementById("resetUser")?.addEventListener("click", () => {
+    localStorage.clear();
+    location.reload();
+  });
 
   renderProfile();
   wireEditProfile();
